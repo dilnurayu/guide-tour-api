@@ -1,19 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from db.models import BookGuide, BookTour
+from db.models import BookGuide, BookTour, User
 from db.schemas import BookGuideCreate, BookGuideOut, BookTourCreate, BookTourOut
 from db.get_db import get_async_session
+from router.role import tourist_required
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
 @router.post("/guides", response_model=BookGuideOut)
 async def book_guide(
-        data: BookGuideCreate,
-        session: AsyncSession = Depends(get_async_session)
+    data: BookGuideCreate,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(tourist_required),
 ):
     new_booking = BookGuide(
+        user_id=current_user.id,
         guide_id=data.guide_id,
         guest_count=data.guest_count,
         reserve_count=data.reserve_count,

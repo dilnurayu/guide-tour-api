@@ -1,22 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from db.models import Resume
+from db.models import Resume, User
 from db.schemas import ResumeCreate, ResumeOut
 from db.get_db import get_async_session
 from typing import Optional
+
+from router.role import guide_required
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
 
 
 @router.post("/", response_model=ResumeOut)
 async def create_resume(
-        resume: ResumeCreate,
-        session: AsyncSession = Depends(get_async_session)
+    resume: ResumeCreate,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(guide_required),
 ):
-    # Create new resume
     new_resume = Resume(
-        user_id=resume.user_id,
+        user_id=current_user.id,
         languages=",".join(map(str, resume.languages)) if resume.languages else None,
         addresses=",".join(map(str, resume.addresses)) if resume.addresses else None,
         bio=resume.bio,

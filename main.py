@@ -9,7 +9,8 @@ from router import (
     review,
     guide,
     tour,
-    booking
+    booking,
+    languages
 )
 
 app = FastAPI()
@@ -17,10 +18,9 @@ app = FastAPI()
 @app.on_event("startup")
 async def init_db():
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        # await conn.run_sync(Base.metadata.create_all)
         pass
 
-# Include routers
 app.include_router(auth.router)
 app.include_router(region.router)
 app.include_router(city.router)
@@ -30,6 +30,7 @@ app.include_router(review.router)
 app.include_router(guide.router)
 app.include_router(tour.router)
 app.include_router(booking.router)
+app.include_router(languages.router)
 
 
 

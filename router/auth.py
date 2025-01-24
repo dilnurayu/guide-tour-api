@@ -1,24 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from core.security import create_access_token, get_password_hash
+from core.security import create_access_token, verify_password, get_password_hash
 from db.models import User
-from db.schemas import UserCreate, Token
+from db.schemas import UserCreate, Token, SignIn
 from db.get_db import get_async_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+class OptionalHTTPBearer(HTTPBearer):
+    async def __call__(self, request: Request) -> Optional[str]:
+        from fastapi import status
+        try:
+            r = await super().__call__(request)
+            token = r.credentials
+        except HTTPException as ex:
+            assert ex.status_code == status.HTTP_403_FORBIDDEN, ex
+            token = None
+        return token
+
+auth_scheme = OptionalHTTPBearer()
 
 @router.post("/signup", response_model=Token)
 async def signup(
-        user: UserCreate,
-        session: AsyncSession = Depends(get_async_session)
+    user: UserCreate,
+    session: AsyncSession = Depends(get_async_session)
 ):
-    result = await session.execute(
-        select(User).where(User.email == user.email)
-    )
+    result = await session.execute(select(User).where(User.email == user.email))
     user_in_db = result.scalar_one_or_none()
-
     if user_in_db:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -33,10 +45,27 @@ async def signup(
         address=user.address,
         user_type=user.user_type,
     )
-
     session.add(new_user)
     await session.commit()
     await session.refresh(new_user)
 
-    access_token = create_access_token({"sub": new_user.email})
+    access_token = create_access_token({"sub": new_user.email, "role": new_user.user_type})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/signin", response_model=Token)
+async def signin(
+    credentials: SignIn,
+    session: AsyncSession = Depends(get_async_session),
+    token: HTTPAuthorizationCredentials = Depends(auth_scheme)
+):
+    result = await session.execute(select(User).where(User.email == credentials.email))
+    user = result.scalar_one_or_none()
+    if not user or not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+        )
+
+    access_token = create_access_token({"sub": user.email, "role": user.user_type})
     return {"access_token": access_token, "token_type": "bearer"}

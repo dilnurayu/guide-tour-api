@@ -38,6 +38,8 @@ class Region(Base):
     region_id = Column(Integer, primary_key=True, index=True)
     region = Column(String(255), nullable=False, unique=True)
 
+    cities = relationship("City", back_populates="region")
+
 
 class City(Base):
     __tablename__ = "cities"

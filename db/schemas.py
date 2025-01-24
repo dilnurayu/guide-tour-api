@@ -11,6 +11,16 @@ class UserCreate(BaseModel):
     address: Optional[str]
     user_type: str
 
+class SignIn(BaseModel):
+    email: str
+    password: str
+
+class LanguageCreate(BaseModel):
+    name: str
+
+class LanguageOut(BaseModel):
+    language_id: int
+    name: str
 
 class UserOut(BaseModel):
     user_id: int
