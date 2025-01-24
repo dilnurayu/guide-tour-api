@@ -31,6 +31,5 @@ app.include_router(guide.router)
 app.include_router(tour.router)
 app.include_router(booking.router)
 
-app = FastAPI()
 
 
