@@ -1,4 +1,5 @@
 fastapi[standard]
+<<<<<<< HEAD
 asyncpg
 sqlalchemy
 databases
@@ -7,3 +8,5 @@ python-jose
 pydantic
 pydantic_settings
 greenlet
+=======
+>>>>>>> 487cd31a963c42df15f5f4f626f499dd8bd32665

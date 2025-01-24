@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+<<<<<<< HEAD
 from db.base import engine, Base
 from router import (
     auth,
@@ -30,3 +31,12 @@ app.include_router(review.router)
 app.include_router(guide.router)
 app.include_router(tour.router)
 app.include_router(booking.router)
+=======
+
+app = FastAPI()
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+>>>>>>> 487cd31a963c42df15f5f4f626f499dd8bd32665
