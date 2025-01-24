@@ -1,0 +1,9 @@
+fastapi[standard]
+asyncpg
+sqlalchemy
+databases
+passlib
+python-jose
+pydantic
+pydantic_settings
+greenlet
