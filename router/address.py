@@ -7,17 +7,6 @@ from db.get_db import get_async_session
 
 router = APIRouter(prefix="/addresses", tags=["addresses"])
 
-@router.post("/", response_model=AddressOut)
-async def create_address(
-    address: AddressCreate,
-    session: AsyncSession = Depends(get_async_session)
-):
-    new_address = Address(region_id=address.region_id, city_id=address.city_id)
-    session.add(new_address)
-    await session.commit()
-    await session.refresh(new_address)
-    return new_address
-
 @router.get("/{address_id}", response_model=AddressOut)
 async def get_address(
     address_id: int,

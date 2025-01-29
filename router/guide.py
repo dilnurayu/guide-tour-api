@@ -13,7 +13,6 @@ async def add_guide_language(
         data: GuideLanguageCreate,
         session: AsyncSession = Depends(get_async_session)
 ):
-    # Optionally check if the entry already exists
     result = await session.execute(
         select(GuideLanguages).where(
             (GuideLanguages.guide_id == data.guide_id) &
@@ -43,7 +42,6 @@ async def add_guide_address(
         data: GuideAddressCreate,
         session: AsyncSession = Depends(get_async_session)
 ):
-    # Optionally check if the entry already exists
     result = await session.execute(
         select(GuideAddress).where(
             (GuideAddress.guide_id == data.guide_id) &

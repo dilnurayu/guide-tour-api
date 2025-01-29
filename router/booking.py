@@ -4,7 +4,7 @@ from sqlalchemy import select
 from db.models import BookGuide, BookTour, User
 from db.schemas import BookGuideCreate, BookGuideOut, BookTourCreate, BookTourOut
 from db.get_db import get_async_session
-from router.role import tourist_required
+from core.security import tourist_required
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -16,9 +16,8 @@ async def book_guide(
     current_user: User = Depends(tourist_required),
 ):
     new_booking = BookGuide(
-        user_id=current_user.id,
+        tourist_id=current_user.user_id,
         guide_id=data.guide_id,
-        guest_count=data.guest_count,
         reserve_count=data.reserve_count,
     )
     session.add(new_booking)
@@ -30,11 +29,14 @@ async def book_guide(
 @router.post("/tours", response_model=BookTourOut)
 async def book_tour(
         data: BookTourCreate,
-        session: AsyncSession = Depends(get_async_session)
+        session: AsyncSession = Depends(get_async_session),
+        current_user: User = Depends(tourist_required),
 ):
     new_booking = BookTour(
+        tourist_id=current_user.user_id,
         tour_id=data.tour_id,
         reserve_count=data.reserve_count,
+
     )
     session.add(new_booking)
     await session.commit()

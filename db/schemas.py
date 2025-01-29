@@ -86,20 +86,24 @@ class AddressOut(AddressBase):
 
 
 class ResumeBase(BaseModel):
-    user_id: int
     languages: list[int] | None = None
     addresses: list[int] | None = None
     bio: str | None = None
     experience_start_date: datetime | None = None
-    rating: float | None = None
+
 
 
 class ResumeCreate(ResumeBase):
-    pass
+    languages: list[int]
+    addresses: list[int]
+    bio: str
+    experience_start_date: datetime
 
 
 class ResumeOut(ResumeBase):
+    user_id: int
     resume_id: int
+    rating: float
 
     class Config:
         orm_mode = True
@@ -179,7 +183,6 @@ class TourOut(TourBase):
 
 class BookGuideBase(BaseModel):
     guide_id: int
-    guest_count: int
     reserve_count: int
 
 

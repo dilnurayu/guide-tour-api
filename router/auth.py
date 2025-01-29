@@ -1,7 +1,4 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from core.security import create_access_token, verify_password, get_password_hash
@@ -10,19 +7,6 @@ from db.schemas import UserCreate, Token, SignIn
 from db.get_db import get_async_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-class OptionalHTTPBearer(HTTPBearer):
-    async def __call__(self, request: Request) -> Optional[str]:
-        from fastapi import status
-        try:
-            r = await super().__call__(request)
-            token = r.credentials
-        except HTTPException as ex:
-            assert ex.status_code == status.HTTP_403_FORBIDDEN, ex
-            token = None
-        return token
-
-auth_scheme = OptionalHTTPBearer()
 
 @router.post("/signup", response_model=Token)
 async def signup(
@@ -57,7 +41,6 @@ async def signup(
 async def signin(
     credentials: SignIn,
     session: AsyncSession = Depends(get_async_session),
-    token: HTTPAuthorizationCredentials = Depends(auth_scheme)
 ):
     result = await session.execute(select(User).where(User.email == credentials.email))
     user = result.scalar_one_or_none()

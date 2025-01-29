@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from db.models import City
+from db.models import City, Address
 from db.schemas import CityCreate, CityOut
 from db.get_db import get_async_session
 
@@ -25,7 +25,14 @@ async def create_city(
     session.add(new_city)
     await session.commit()
     await session.refresh(new_city)
+
+    new_address = Address(region_id=city.region_id, city_id=new_city.city_id)
+    session.add(new_address)
+    await session.commit()
+    await session.refresh(new_address)
+
     return new_city
+
 
 
 @router.get("/{city_id}", response_model=CityOut)

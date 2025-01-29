@@ -14,11 +14,16 @@ class User(Base):
     user_type = Column(String(50), nullable=False)
 
     resumes = relationship("Resume", back_populates="user")
-    reviews = relationship("Review", back_populates="guide")
+
+    guide_reviews = relationship("Review", back_populates="guide", foreign_keys="[Review.guide_id]")
+    tourist_reviews = relationship("Review", foreign_keys="[Review.tourist_id]")
 
     guide_languages = relationship("GuideLanguages", back_populates="guide")
     guide_addresses = relationship("GuideAddress", back_populates="guide")
-    guide_bookings = relationship("BookGuide", back_populates="guide")
+
+    guide_bookings = relationship("BookGuide", back_populates="guide", foreign_keys="[BookGuide.guide_id]")
+    tourist_bookings = relationship("BookGuide", foreign_keys="[BookGuide.tourist_id]")
+
 
 
 class Review(Base):
@@ -26,11 +31,12 @@ class Review(Base):
 
     review_id = Column(Integer, primary_key=True, index=True)
     guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     rating = Column(Float, nullable=False)
 
-    guide = relationship("User", back_populates="reviews")
+    guide = relationship("User", back_populates="guide_reviews", foreign_keys=[guide_id])
 
 class Region(Base):
     __tablename__ = "regions"
@@ -112,6 +118,7 @@ class Tour(Base):
     __tablename__ = "tours"
 
     tour_id = Column(Integer, primary_key=True, index=True)
+    guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     address_id = Column(Integer, ForeignKey("addresses.address_id"), nullable=False)
     language = Column(String(255), nullable=False)
     guest_count = Column(Integer, nullable=False)
@@ -131,16 +138,19 @@ class BookGuide(Base):
 
     book_id = Column(Integer, primary_key=True, index=True)
     guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    guest_count = Column(Integer, nullable=False)
     reserve_count = Column(Integer, nullable=False)
+    tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
 
-    guide = relationship("User", back_populates="guide_bookings")
+    guide = relationship("User", back_populates="guide_bookings", foreign_keys=[guide_id])
+    tourist = relationship("User", back_populates="tourist_bookings", foreign_keys=[tourist_id])
+
 
 
 class BookTour(Base):
     __tablename__ = "book_tour"
 
     book_id = Column(Integer, primary_key=True, index=True)
+    tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     tour_id = Column(Integer, ForeignKey("tours.tour_id"), nullable=False)
     reserve_count = Column(Integer, nullable=False)
 
