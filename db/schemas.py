@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, time
 
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 
 
 class UserCreate(BaseModel):
@@ -153,32 +153,45 @@ class GuideAddressOut(GuideAddressBase):
     class Config:
         orm_mode = True
 
+class Language(BaseModel):
+    language_id: int
+    name: str
 
 class TourBase(BaseModel):
-    address_id: int
-    language: str
     guest_count: int
     price: float
     price_type: str
     payment_type: str
     date: datetime
-    duration: str
-    about: str | None = None
-
-class Language(BaseModel):
-    language_id: int
-    name: str
-
+    departure_time: time
+    return_time: time
+    duration: int
+    dress_code: Optional[str] = None
+    not_included: Optional[str] = None
+    included: Optional[str] = None
+    photo_gallery: List[str] = None
+    about: Optional[str] = None
 
 class TourCreate(TourBase):
-    pass
-
+    destination_ids: List[int]
+    language_ids: List[int]
 
 class TourOut(TourBase):
     tour_id: int
+    destination_ids: List[int]
+    language_ids: List[int]
+
+    @classmethod
+    def from_orm(cls, obj):
+        data = obj.__dict__.copy()
+        data.pop('_sa_instance_state', None)
+        data["destination_ids"] = [address.address_id for address in obj.addresses] if obj.addresses else []
+        data["language_ids"] = [lang.language_id for lang in obj.languages] if obj.languages else []
+        return cls(**data)
 
     class Config:
         orm_mode = True
+
 
 
 class BookGuideBase(BaseModel):

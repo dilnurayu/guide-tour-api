@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, Date
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, Date, ARRAY, Time, Table
 from sqlalchemy.orm import relationship
 from db.base import Base
 
@@ -56,7 +56,13 @@ class City(Base):
 
     region = relationship("Region", back_populates="cities")
 
-
+# Many-to-Many relationship for Tour <-> Address
+tour_addresses = Table(
+    "tour_addresses",
+    Base.metadata,
+    Column("tour_id", Integer, ForeignKey("tours.tour_id"), primary_key=True),
+    Column("address_id", Integer, ForeignKey("addresses.address_id"), primary_key=True),
+)
 class Address(Base):
     __tablename__ = "addresses"
 
@@ -67,8 +73,11 @@ class Address(Base):
     region = relationship("Region")
     city = relationship("City")
 
+    # Many-to-Many with Tour
+    tours = relationship("Tour", secondary=tour_addresses, back_populates="addresses")
+
+    # Many-to-Many with Guide
     guide_addresses = relationship("GuideAddress", back_populates="address")
-    tours = relationship("Tour", back_populates="address")
 
 
 class Resume(Base):
@@ -76,21 +85,33 @@ class Resume(Base):
 
     resume_id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    languages = Column(Text, nullable=True)  # Comma-separated list of language IDs
-    addresses = Column(Text, nullable=True)  # Comma-separated list of address IDs
+    languages = Column(Text, nullable=True)
+    addresses = Column(Text, nullable=True)
     bio = Column(Text, nullable=True)
     experience_start_date = Column(Date, nullable=True)
     rating = Column(Float, nullable=True)
 
     user = relationship("User", back_populates="resumes")
 
+# Many-to-Many relationship for Tour <-> Language
+tour_languages = Table(
+    "tour_languages",
+    Base.metadata,
+    Column("tour_id", Integer, ForeignKey("tours.tour_id"), primary_key=True),
+    Column("language_id", Integer, ForeignKey("languages.language_id"), primary_key=True),
+)
 class Language(Base):
     __tablename__ = "languages"
 
     language_id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
 
+    # Many-to-Many with Tour
+    tours = relationship("Tour", secondary=tour_languages, back_populates="languages")
+
+    # Many-to-Many with Guide
     guide_languages = relationship("GuideLanguages", back_populates="language")
+
 
 
 
@@ -119,17 +140,24 @@ class Tour(Base):
 
     tour_id = Column(Integer, primary_key=True, index=True)
     guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    address_id = Column(Integer, ForeignKey("addresses.address_id"), nullable=False)
-    language = Column(String(255), nullable=False)
     guest_count = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
     price_type = Column(String(50), nullable=False)
     payment_type = Column(String(50), nullable=False)
     date = Column(Date, nullable=False)
-    duration = Column(String(50), nullable=False)
+    departure_time = Column(Time, nullable=False)
+    return_time = Column(Time, nullable=False)
+    duration = Column(Integer, nullable=False)
+    dress_code = Column(String(255), nullable=True)
+    not_included = Column(Text, nullable=True)
+    included = Column(Text, nullable=True)
+    photo_gallery = Column(ARRAY(String), nullable=True)
     about = Column(Text, nullable=True)
 
-    address = relationship("Address", back_populates="tours")
+    # Many-to-Many relationships
+    addresses = relationship("Address", secondary=tour_addresses, back_populates="tours")
+    languages = relationship("Language", secondary=tour_languages, back_populates="tours")
+
     tour_bookings = relationship("BookTour", back_populates="tour")
 
 
