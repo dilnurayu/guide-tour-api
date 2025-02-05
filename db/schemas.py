@@ -120,7 +120,7 @@ class ResumeOut(ResumeBase):
     def from_orm(cls, resume: Resume, user_name: str):
         return cls(
             **resume.__dict__,
-            user_name=user_name,
+            user_name=user_name
         )
 
 
