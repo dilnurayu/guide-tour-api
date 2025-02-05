@@ -97,12 +97,16 @@ class ResumeBase(BaseModel):
     experience_start_date: Optional[datetime] = None
     languages: Optional[List[int]] = None
     addresses: Optional[List[int]] = None
+    price: Optional[int] = None
+    price_type: Optional[str] = None
 
 class ResumeCreate(ResumeBase):
     bio: str
     experience_start_date: datetime
     languages: List[int]
     addresses: List[int]
+    price: int
+    price_type: str
 
 class ResumeOut(ResumeBase):
     resume_id: int
@@ -111,6 +115,9 @@ class ResumeOut(ResumeBase):
     languages: List[LanguageOut]
     addresses: List[AddressOut]
     user_name: str
+    price: int
+    price_type: str
+
 
     class Config:
         orm_mode = True

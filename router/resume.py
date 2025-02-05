@@ -8,7 +8,7 @@ from db.get_db import get_async_session
 from typing import Optional, List
 from core.security import guide_required, oauth2_scheme
 
-router = APIRouter(prefix="/resumes")
+router = APIRouter(prefix="/resumes", tags=["resumes"])
 
 async def get_average_rating(guide_id: int, session: AsyncSession) -> float:
     result = await session.execute(
@@ -35,16 +35,18 @@ async def create_resume(
         )
 
     languages = await session.execute(
-        select(Language).where(Language.language_id.in_(resume.languages))  # Changed from language_ids
+        select(Language).where(Language.language_id.in_(resume.languages))
     )
     addresses = await session.execute(
-        select(Address).where(Address.address_id.in_(resume.addresses))  # Changed from address_ids
+        select(Address).where(Address.address_id.in_(resume.addresses))
     )
 
     new_resume = Resume(
         user_id=current_user.user_id,
         bio=resume.bio,
         experience_start_date=resume.experience_start_date,
+        price=resume.price,
+        price_type=resume.price_type,
         languages=languages.scalars().all(),
         addresses=addresses.scalars().all(),
         rating=0,

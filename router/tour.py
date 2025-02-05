@@ -19,13 +19,11 @@ async def create_tour(
     session: AsyncSession = Depends(get_async_session),
     guide: User = Depends(validate_guide_resume),
 ):
-    # Fetch addresses from DB
     addresses = await session.execute(
         select(Address).where(Address.address_id.in_(tour.destination_ids))
     )
     address_list = addresses.scalars().all()
 
-    # Fetch languages from DB
     languages = await session.execute(
         select(Language).where(Language.language_id.in_(tour.language_ids))
     )
@@ -63,6 +61,24 @@ async def create_tour(
     return {
         "msg": "success"
     }
+
+@router.get("/me", response_model=List[TourOut])
+async def list_my_tours(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(validate_guide_resume)
+):
+    result = await session.execute(
+        select(Tour)
+        .options(
+            selectinload(Tour.addresses),
+            selectinload(Tour.languages)
+        )
+        .where(Tour.guide_id == current_user.user_id)
+    )
+    tours = result.scalars().all()
+    if not tours:
+        raise HTTPException(status_code=404, detail="No tours found for this guide.")
+    return [TourOut.from_orm(tour) for tour in tours]
 
 
 @router.get("/{tour_id}", response_model=TourOut)

@@ -124,6 +124,8 @@ class Resume(Base):
     bio = Column(Text, nullable=True)
     experience_start_date = Column(Date, nullable=True)
     rating = Column(Float, nullable=True)
+    price = Column(Integer, nullable=True)
+    price_type = Column(Text, nullable=True)
 
     user = relationship("User", back_populates="resumes")
     languages = relationship("Language", secondary=resume_languages, back_populates="resumes")
