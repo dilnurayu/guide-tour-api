@@ -8,7 +8,7 @@ from db.models import Resume
 
 class UserCreate(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str
     address: Optional[str]
     user_type: str
