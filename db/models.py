@@ -63,6 +63,15 @@ tour_addresses = Table(
     Column("tour_id", Integer, ForeignKey("tours.tour_id"), primary_key=True),
     Column("address_id", Integer, ForeignKey("addresses.address_id"), primary_key=True),
 )
+
+resume_addresses = Table(
+    'resume_addresses',
+    Base.metadata,
+    Column('resume_id', Integer, ForeignKey('resumes.resume_id')),
+    Column('address_id', Integer, ForeignKey('addresses.address_id')),
+)
+
+
 class Address(Base):
     __tablename__ = "addresses"
 
@@ -74,24 +83,11 @@ class Address(Base):
     city = relationship("City")
 
     # Many-to-Many with Tour
-    tours = relationship("Tour", secondary=tour_addresses, back_populates="addresses")
-
+    tours = relationship("Tour", secondary="tour_addresses", back_populates="addresses")
     # Many-to-Many with Guide
     guide_addresses = relationship("GuideAddress", back_populates="address")
-
-
-class Resume(Base):
-    __tablename__ = "resumes"
-
-    resume_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    languages = Column(Text, nullable=True)
-    addresses = Column(Text, nullable=True)
-    bio = Column(Text, nullable=True)
-    experience_start_date = Column(Date, nullable=True)
-    rating = Column(Float, nullable=True)
-
-    user = relationship("User", back_populates="resumes")
+    # Many-to-Many with Resume
+    resumes = relationship("Resume", secondary=resume_addresses, back_populates="addresses")
 
 # Many-to-Many relationship for Tour <-> Language
 tour_languages = Table(
@@ -100,6 +96,13 @@ tour_languages = Table(
     Column("tour_id", Integer, ForeignKey("tours.tour_id"), primary_key=True),
     Column("language_id", Integer, ForeignKey("languages.language_id"), primary_key=True),
 )
+
+resume_languages = Table(
+    'resume_languages',
+    Base.metadata,
+    Column('resume_id', Integer, ForeignKey('resumes.resume_id')),
+    Column('language_id', Integer, ForeignKey('languages.language_id')),
+)
 class Language(Base):
     __tablename__ = "languages"
 
@@ -107,12 +110,24 @@ class Language(Base):
     name = Column(String, nullable=False)
 
     # Many-to-Many with Tour
-    tours = relationship("Tour", secondary=tour_languages, back_populates="languages")
-
+    tours = relationship("Tour", secondary="tour_languages", back_populates="languages")
     # Many-to-Many with Guide
     guide_languages = relationship("GuideLanguages", back_populates="language")
+    # Many-to-Many with Resume
+    resumes = relationship("Resume", secondary=resume_languages, back_populates="languages")
 
+class Resume(Base):
+    __tablename__ = "resumes"
 
+    resume_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    bio = Column(Text, nullable=True)
+    experience_start_date = Column(Date, nullable=True)
+    rating = Column(Float, nullable=True)
+
+    user = relationship("User", back_populates="resumes")
+    languages = relationship("Language", secondary=resume_languages, back_populates="resumes")
+    addresses = relationship("Address", secondary=resume_addresses, back_populates="resumes")
 
 
 class GuideLanguages(Base):

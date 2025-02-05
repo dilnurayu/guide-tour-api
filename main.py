@@ -9,7 +9,6 @@ from router import (
     address,
     resume,
     review,
-    guide,
     tour,
     booking,
     languages
@@ -70,7 +69,6 @@ app.include_router(city.router)
 app.include_router(address.router)
 app.include_router(resume.router)
 app.include_router(review.router)
-app.include_router(guide.router)
 app.include_router(tour.router)
 app.include_router(booking.router)
 app.include_router(languages.router)

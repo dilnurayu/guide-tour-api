@@ -3,6 +3,8 @@ from datetime import datetime, time
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
+from db.models import Resume
+
 
 class UserCreate(BaseModel):
     name: str
@@ -21,6 +23,10 @@ class LanguageCreate(BaseModel):
 class LanguageOut(BaseModel):
     language_id: int
     name: str
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
 
 class UserOut(BaseModel):
     user_id: int
@@ -83,30 +89,39 @@ class AddressOut(AddressBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class ResumeBase(BaseModel):
-    languages: list[int] | None = None
-    addresses: list[int] | None = None
-    bio: str | None = None
-    experience_start_date: datetime | None = None
-
-
+    bio: Optional[str] = None
+    experience_start_date: Optional[datetime] = None
+    languages: Optional[List[int]] = None
+    addresses: Optional[List[int]] = None
 
 class ResumeCreate(ResumeBase):
-    languages: list[int]
-    addresses: list[int]
     bio: str
     experience_start_date: datetime
-
+    languages: List[int]
+    addresses: List[int]
 
 class ResumeOut(ResumeBase):
-    user_id: int
     resume_id: int
+    user_id: int
     rating: float
+    languages: List[LanguageOut]
+    addresses: List[AddressOut]
+    user_name: str
 
     class Config:
         orm_mode = True
+        from_attributes = True
+
+    @classmethod
+    def from_orm(cls, resume: Resume, user_name: str):
+        return cls(
+            **resume.__dict__,
+            user_name=user_name,
+        )
 
 
 class ReviewBase(BaseModel):
