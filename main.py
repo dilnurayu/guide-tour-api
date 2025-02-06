@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 import logging
-from db.base import engine, Base
+from db.base import engine
 from router import (
     auth,
     region,
