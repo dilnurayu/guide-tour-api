@@ -26,7 +26,7 @@ async def create_resume(
     current_user: User = Depends(guide_required),
 ):
     result = await session.execute(
-        select(Resume).where(Resume.user_id == current_user.user_id)
+        select(Resume).where(Resume.guide_id == current_user.user_id)
     )
     existing_resume = result.scalar_one_or_none()
 
@@ -43,7 +43,7 @@ async def create_resume(
     )
 
     new_resume = Resume(
-        user_id=current_user.user_id,
+        guide_id=current_user.user_id,
         bio=resume.bio,
         experience_start_date=resume.experience_start_date,
         price=resume.price,
@@ -66,8 +66,8 @@ async def get_my_resume(
     result = await session.execute(
         select(Resume, User.name.label("user_name"))
         .options(joinedload(Resume.languages), joinedload(Resume.addresses))
-        .join(User, Resume.user_id == User.user_id)
-        .where(Resume.user_id == current_user.user_id)
+        .join(User, Resume.guide_id == User.user_id)
+        .where(Resume.guide_id == current_user.user_id)
     )
     resume_row = result.unique().one_or_none()
 
@@ -76,7 +76,7 @@ async def get_my_resume(
 
     resume, user_name = resume_row
 
-    resume.rating = await get_average_rating(resume.user_id, session)
+    resume.rating = await get_average_rating(resume.guide_id, session)
     return ResumeOut.from_orm(resume, user_name=user_name)
 
 @router.get("/{resume_id}", response_model=ResumeOut)
@@ -87,7 +87,7 @@ async def get_resume(
     result = await session.execute(
         select(Resume, User.name.label("user_name"))
         .options(joinedload(Resume.languages), joinedload(Resume.addresses))
-        .join(User, Resume.user_id == User.user_id)
+        .join(User, Resume.guide_id == User.user_id)
         .where(Resume.resume_id == resume_id)
     )
     resume_row = result.unique().one_or_none()
@@ -113,10 +113,10 @@ async def list_resumes(
     query = select(Resume, User.name.label("user_name")).options(
         joinedload(Resume.languages),
         joinedload(Resume.addresses)
-    ).join(User, Resume.user_id == User.user_id)
+    ).join(User, Resume.guide_id == User.user_id)
 
     if user_id is not None:
-        query = query.where(Resume.user_id == user_id)
+        query = query.where(Resume.guide_id == user_id)
     if language_id is not None:
         query = query.join(Resume.languages).where(Language.language_id == language_id)
     if address_id is not None:
@@ -131,12 +131,12 @@ async def list_resumes(
     for resume_row in resume_rows:
         resume, user_name = resume_row
         if min_rating is not None:
-            rating = await get_average_rating(resume.user_id, session)
+            rating = await get_average_rating(resume.guide_id, session)
             if rating >= min_rating:
                 resume.rating = rating
                 resumes_with_username.append(ResumeOut.from_orm(resume, user_name=user_name))
         else:
-            resume.rating = await get_average_rating(resume.user_id, session)
+            resume.rating = await get_average_rating(resume.guide_id, session)
             resumes_with_username.append(ResumeOut.from_orm(resume, user_name=user_name))
 
     return resumes_with_username
@@ -175,9 +175,9 @@ async def update_resume(
 
     await session.commit()
     await session.refresh(resume)
-    resume.rating = await get_average_rating(resume.user_id, session)
+    resume.rating = await get_average_rating(resume.guide_id, session)
 
-    user_result = await session.execute(select(User.name).where(User.user_id == resume.user_id))
+    user_result = await session.execute(select(User.name).where(User.user_id == resume.guide_id))
     user_name = user_result.scalar_one()
 
     return ResumeOut.from_orm(resume, user_name=user_name)
