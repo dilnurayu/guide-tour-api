@@ -8,7 +8,7 @@ from core.security import tourist_required
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
-
+#Booking a Guide
 @router.post("/guides", response_model=BookGuideOut)
 async def book_guide(
     data: BookGuideCreate,
@@ -25,7 +25,7 @@ async def book_guide(
     await session.refresh(new_booking)
     return new_booking
 
-
+#Booking a Tour
 @router.post("/tours", response_model=BookTourOut)
 async def book_tour(
         data: BookTourCreate,
