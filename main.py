@@ -1,5 +1,10 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from db.base import engine, Base
 from router import (
@@ -60,9 +65,13 @@ app.openapi = custom_openapi
 
 @app.on_event("startup")
 async def init_db():
-    async with engine.begin() as conn:
-        # await conn.run_sync(Base.metadata.create_all)
-        pass
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+            # await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        raise
 
 app.include_router(auth.router)
 app.include_router(region.router)
