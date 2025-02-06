@@ -2,10 +2,6 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 from db.base import engine, Base
 from router import (
     auth,
@@ -20,6 +16,9 @@ from router import (
     tour_review
 )
 from fastapi.openapi.utils import get_openapi
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
