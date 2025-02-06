@@ -10,11 +10,5 @@ logger = logging.getLogger(__name__)
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     logger.info("Creating new database session")
     async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        except Exception as e:
-            logger.error(f"Session error: {e}")
-            raise
-        finally:
-            logger.info("Closing database session")
-            await session.close()
+        yield session
+    logger.info("Database session closed")
