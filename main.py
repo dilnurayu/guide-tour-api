@@ -74,7 +74,10 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Shutting down application")
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except RuntimeError as e:
+        logger.warning("Engine disposal failed (event loop may be closed): %s", e)
 
 app.include_router(auth.router)
 app.include_router(region.router)
