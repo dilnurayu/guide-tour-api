@@ -11,7 +11,7 @@
         "dest": "main.py"
       }
     ],
-   "headers": [
+    "headers": [
     {
       "source": "/(.*)",
       "headers": [
@@ -21,11 +21,15 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET,OPTIONS,POST,PUT,DELETE"
+          "value": "*"
         },
         {
           "key": "Access-Control-Allow-Headers",
           "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
         }
       ]
     }
