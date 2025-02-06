@@ -61,14 +61,20 @@ app.openapi = custom_openapi
 
 
 @app.on_event("startup")
-async def init_db():
+async def startup_event():
+    logger.info("Starting up application")
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
-            # await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database connection successful")
     except Exception as e:
-        logger.error(f"Database connection failed: {e}")
+        logger.error(f"Database startup failed: {e}")
         raise
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Shutting down application")
+    await engine.dispose()
 
 app.include_router(auth.router)
 app.include_router(region.router)
