@@ -13,7 +13,8 @@ router = APIRouter(prefix="/resumes", tags=["resumes"])
 async def get_average_rating(guide_id: int, session: AsyncSession) -> float:
     result = await session.execute(
         select(func.avg(Review.rating))
-        .where(Review.guide_id == guide_id)
+        .join(Resume, Resume.resume_id == Review.resume_id)
+        .where(Resume.guide_id == guide_id)
     )
     average_rating = result.scalar()
     return average_rating or 0.0

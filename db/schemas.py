@@ -132,7 +132,7 @@ class ResumeOut(ResumeBase):
 
 
 class ReviewBase(BaseModel):
-    guide_id: int
+    resume_id: int
     title: str
     description: str | None = None
     rating: float
@@ -144,6 +144,22 @@ class ReviewCreate(ReviewBase):
 
 class ReviewOut(ReviewBase):
     review_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class TourReviewBase(BaseModel):
+    tour_id: int
+    title: str
+    description: str
+    rating: float
+
+class TourReviewCreate(TourReviewBase):
+    pass
+
+class TourReviewOut(TourReviewBase):
+    tour_review_id: int
 
     class Config:
         orm_mode = True

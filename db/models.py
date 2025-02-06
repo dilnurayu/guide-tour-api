@@ -15,28 +15,65 @@ class User(Base):
 
     resumes = relationship("Resume", back_populates="user")
 
-    guide_reviews = relationship("Review", back_populates="guide", foreign_keys="[Review.guide_id]")
-    tourist_reviews = relationship("Review", foreign_keys="[Review.tourist_id]")
+    guide_reviews = relationship(
+        "Review",
+        secondary="resumes",
+        primaryjoin="User.user_id == Resume.guide_id",
+        secondaryjoin="Resume.resume_id == Review.resume_id",
+        viewonly=True
+    )
+
+    tourist_reviews = relationship(
+        "Review",
+        foreign_keys="[Review.tourist_id]"
+    )
 
     guide_languages = relationship("GuideLanguages", back_populates="guide")
     guide_addresses = relationship("GuideAddress", back_populates="guide")
 
-    guide_bookings = relationship("BookGuide", back_populates="guide", foreign_keys="[BookGuide.guide_id]")
-    tourist_bookings = relationship("BookGuide", foreign_keys="[BookGuide.tourist_id]")
-
+    guide_bookings = relationship(
+        "BookGuide",
+        back_populates="guide",
+        foreign_keys="[BookGuide.guide_id]"
+    )
+    tourist_bookings = relationship(
+        "BookGuide",
+        back_populates="tourist",
+        foreign_keys="[BookGuide.tourist_id]"
+    )
+    tour_reviews = relationship(
+        "TourReview",
+        back_populates="tourist",
+        foreign_keys="[TourReview.tourist_id]"
+    )
 
 
 class Review(Base):
     __tablename__ = "reviews"
 
     review_id = Column(Integer, primary_key=True, index=True)
-    guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    resume_id = Column(Integer, ForeignKey("resumes.resume_id"), nullable=False)
     tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     rating = Column(Float, nullable=False)
 
-    guide = relationship("User", back_populates="guide_reviews", foreign_keys=[guide_id])
+    resume = relationship("Resume", back_populates="resume_reviews")
+    tourist = relationship("User", back_populates="tourist_reviews")
+
+
+class TourReview(Base):
+    __tablename__ = "tour_reviews"
+
+    tour_review_id = Column(Integer, primary_key=True, index=True)
+    tour_id = Column(Integer, ForeignKey("tours.tour_id"), nullable=False)
+    tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    rating = Column(Float, nullable=False)
+
+    tour = relationship("Tour", back_populates="tour_reviews")
+    tourist = relationship("User", back_populates="tour_reviews")
 
 class Region(Base):
     __tablename__ = "regions"
@@ -120,16 +157,16 @@ class Resume(Base):
     __tablename__ = "resumes"
 
     resume_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     bio = Column(Text, nullable=True)
     experience_start_date = Column(Date, nullable=True)
-    rating = Column(Float, nullable=True)
     price = Column(Integer, nullable=True)
     price_type = Column(Text, nullable=True)
 
     user = relationship("User", back_populates="resumes")
     languages = relationship("Language", secondary=resume_languages, back_populates="resumes")
     addresses = relationship("Address", secondary=resume_addresses, back_populates="resumes")
+    resume_reviews = relationship("Review", back_populates="resume")
 
 
 class GuideLanguages(Base):
@@ -176,6 +213,7 @@ class Tour(Base):
     languages = relationship("Language", secondary=tour_languages, back_populates="tours")
 
     tour_bookings = relationship("BookTour", back_populates="tour")
+    tour_reviews = relationship("TourReview", back_populates="tour")
 
 
 class BookGuide(Base):
