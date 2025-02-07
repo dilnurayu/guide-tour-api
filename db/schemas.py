@@ -110,25 +110,32 @@ class ResumeCreate(ResumeBase):
 
 class ResumeOut(ResumeBase):
     resume_id: int
-    user_id: int
+    guide_id: int
     rating: float
-    languages: List[LanguageOut]
-    addresses: List[AddressOut]
+    languages: List["LanguageOut"]
+    addresses: List["AddressOut"]
     user_name: str
     price: int
     price_type: str
 
-
     class Config:
-        orm_mode = True
         from_attributes = True
 
     @classmethod
-    def from_orm(cls, resume: Resume, user_name: str):
-        return cls(
-            **resume.__dict__,
-            user_name=user_name
-        )
+    def from_orm(cls, resume, user_name: str):
+        resume_dict = {
+            "resume_id": resume.resume_id,
+            "guide_id": resume.guide_id,
+            "bio": resume.bio,
+            "experience_start_date": resume.experience_start_date,
+            "languages": resume.languages,
+            "addresses": resume.addresses,
+            "price": resume.price,
+            "price_type": resume.price_type,
+            "rating": getattr(resume, 'rating', 0.0),
+            "user_name": user_name
+        }
+        return cls(**resume_dict)
 
 
 class ReviewBase(BaseModel):

@@ -10,37 +10,56 @@ from core.security import guide_required, oauth2_scheme
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
 
+
 async def get_average_rating(guide_id: int, session: AsyncSession) -> float:
+    """Calculate the average rating for a guide's resumes."""
     result = await session.execute(
         select(func.avg(Review.rating))
         .join(Resume, Resume.resume_id == Review.resume_id)
         .where(Resume.guide_id == guide_id)
     )
-    average_rating = result.scalar()
-    return average_rating or 0.0
+    return result.scalar() or 0.0
+
+
+async def get_resume_with_relations(resume_id: int, session: AsyncSession):
+    """Get a resume with all its related data."""
+    result = await session.execute(
+        select(Resume, User.name.label("user_name"))
+        .options(joinedload(Resume.languages), joinedload(Resume.addresses))
+        .join(User, Resume.guide_id == User.user_id)
+        .where(Resume.resume_id == resume_id)
+    )
+    return result.unique().one_or_none()
+
+
+async def validate_and_get_relations(resume_data: ResumeCreate, session: AsyncSession):
+    """Validate and get language and address relations."""
+    languages = await session.execute(
+        select(Language).where(Language.language_id.in_(resume_data.languages))
+    )
+    addresses = await session.execute(
+        select(Address).where(Address.address_id.in_(resume_data.addresses))
+    )
+    return languages.scalars().all(), addresses.scalars().all()
+
 
 @router.post("/", dependencies=[Depends(oauth2_scheme)])
 async def create_resume(
-    resume: ResumeCreate,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(guide_required),
+        resume: ResumeCreate,
+        session: AsyncSession = Depends(get_async_session),
+        current_user: User = Depends(guide_required),
 ):
-    result = await session.execute(
+
+    existing = await session.execute(
         select(Resume).where(Resume.guide_id == current_user.user_id)
     )
-    existing_resume = result.scalar_one_or_none()
-
-    if existing_resume:
+    if existing.scalar_one_or_none():
         raise HTTPException(
-            status_code=400, detail="A resume already exists for this guide user."
+            status_code=400,
+            detail="A resume already exists for this guide user."
         )
 
-    languages = await session.execute(
-        select(Language).where(Language.language_id.in_(resume.languages))
-    )
-    addresses = await session.execute(
-        select(Address).where(Address.address_id.in_(resume.addresses))
-    )
+    languages, addresses = await validate_and_get_relations(resume, session)
 
     new_resume = Resume(
         guide_id=current_user.user_id,
@@ -48,20 +67,19 @@ async def create_resume(
         experience_start_date=resume.experience_start_date,
         price=resume.price,
         price_type=resume.price_type,
-        languages=languages.scalars().all(),
-        addresses=addresses.scalars().all(),
-        rating=0,
+        languages=languages,
+        addresses=addresses,
     )
 
     session.add(new_resume)
     await session.commit()
-    await session.refresh(new_resume)
-    return {"msg": "created"}
+    return {"msg": "Resume created successfully"}
+
 
 @router.get("/me", response_model=ResumeOut, dependencies=[Depends(oauth2_scheme)])
 async def get_my_resume(
-    current_user: User = Depends(guide_required),
-    session: AsyncSession = Depends(get_async_session),
+        current_user: User = Depends(guide_required),
+        session: AsyncSession = Depends(get_async_session),
 ):
     result = await session.execute(
         select(Resume, User.name.label("user_name"))
@@ -75,129 +93,115 @@ async def get_my_resume(
         raise HTTPException(status_code=404, detail="Resume not found for the current guide.")
 
     resume, user_name = resume_row
-
     resume.rating = await get_average_rating(resume.guide_id, session)
+
     return ResumeOut.from_orm(resume, user_name=user_name)
+
 
 @router.get("/{resume_id}", response_model=ResumeOut)
 async def get_resume(
-    resume_id: int,
-    session: AsyncSession = Depends(get_async_session),
+        resume_id: int,
+        session: AsyncSession = Depends(get_async_session),
 ):
-    result = await session.execute(
-        select(Resume, User.name.label("user_name"))
-        .options(joinedload(Resume.languages), joinedload(Resume.addresses))
-        .join(User, Resume.guide_id == User.user_id)
-        .where(Resume.resume_id == resume_id)
-    )
-    resume_row = result.unique().one_or_none()
 
+    resume_row = await get_resume_with_relations(resume_id, session)
     if not resume_row:
         raise HTTPException(status_code=404, detail="Resume not found.")
 
     resume, user_name = resume_row
+    resume.rating = await get_average_rating(resume.guide_id, session)
 
-    resume.rating = await get_average_rating(resume.user_id, session)
     return ResumeOut.from_orm(resume, user_name=user_name)
+
 
 @router.get("/", response_model=List[ResumeOut])
 async def list_resumes(
-    session: AsyncSession = Depends(get_async_session),
-    skip: int = 0,
-    limit: int = 10,
-    user_id: Optional[int] = None,
-    min_rating: Optional[float] = None,
-    language_id: Optional[int] = None,
-    address_id: Optional[int] = None,
+        session: AsyncSession = Depends(get_async_session),
+        skip: int = 0,
+        limit: int = 10,
+        user_id: Optional[int] = None,
+        min_rating: Optional[float] = None,
+        language_id: Optional[int] = None,
+        address_id: Optional[int] = None,
 ):
-    query = select(Resume, User.name.label("user_name")).options(
-        joinedload(Resume.languages),
-        joinedload(Resume.addresses)
-    ).join(User, Resume.guide_id == User.user_id)
+    """List resumes with optional filtering."""
+    query = (
+        select(Resume, User.name.label("user_name"))
+        .options(joinedload(Resume.languages), joinedload(Resume.addresses))
+        .join(User, Resume.guide_id == User.user_id)
+    )
 
-    if user_id is not None:
+    # Apply filters
+    if user_id:
         query = query.where(Resume.guide_id == user_id)
-    if language_id is not None:
+    if language_id:
         query = query.join(Resume.languages).where(Language.language_id == language_id)
-    if address_id is not None:
+    if address_id:
         query = query.join(Resume.addresses).where(Address.address_id == address_id)
 
     query = query.offset(skip).limit(limit)
-
     result = await session.execute(query)
     resume_rows = result.unique().all()
-    resumes_with_username = []
 
-    for resume_row in resume_rows:
-        resume, user_name = resume_row
-        if min_rating is not None:
-            rating = await get_average_rating(resume.guide_id, session)
-            if rating >= min_rating:
-                resume.rating = rating
-                resumes_with_username.append(ResumeOut.from_orm(resume, user_name=user_name))
-        else:
-            resume.rating = await get_average_rating(resume.guide_id, session)
-            resumes_with_username.append(ResumeOut.from_orm(resume, user_name=user_name))
+    resumes = []
+    for resume, user_name in resume_rows:
+        rating = await get_average_rating(resume.guide_id, session)
+        if min_rating is None or rating >= min_rating:
+            resume.rating = rating
+            resumes.append(ResumeOut.from_orm(resume, user_name=user_name))
 
-    return resumes_with_username
+    return resumes
+
 
 @router.put("/{resume_id}", response_model=ResumeOut, dependencies=[Depends(oauth2_scheme)])
 async def update_resume(
-    resume_id: int,
-    resume_data: ResumeCreate,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(guide_required),
+        resume_id: int,
+        resume_data: ResumeCreate,
+        session: AsyncSession = Depends(get_async_session),
+        current_user: User = Depends(guide_required),
 ):
-    result = await session.execute(
+    resume = await session.execute(
         select(Resume)
         .options(joinedload(Resume.languages), joinedload(Resume.addresses))
         .where(Resume.resume_id == resume_id)
     )
-    resume = result.unique().scalar_one_or_none()
+    resume = resume.unique().scalar_one_or_none()
 
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
-
-    if resume.user_id != current_user.user_id:
+    if resume.guide_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this resume.")
 
-    languages = await session.execute(
-        select(Language).where(Language.language_id.in_(resume_data.languages)) # Changed from language_ids
-    )
-    addresses = await session.execute(
-        select(Address).where(Address.address_id.in_(resume_data.addresses)) # Changed from address_ids
-    )
+    languages, addresses = await validate_and_get_relations(resume_data, session)
 
-    resume.languages = languages.scalars().all()
-    resume.addresses = addresses.scalars().all()
+    resume.languages = languages
+    resume.addresses = addresses
     resume.bio = resume_data.bio
     resume.experience_start_date = resume_data.experience_start_date
+    resume.price = resume_data.price
+    resume.price_type = resume_data.price_type
 
     await session.commit()
     await session.refresh(resume)
+
     resume.rating = await get_average_rating(resume.guide_id, session)
-
-    user_result = await session.execute(select(User.name).where(User.user_id == resume.guide_id))
-    user_name = user_result.scalar_one()
-
-    return ResumeOut.from_orm(resume, user_name=user_name)
+    return ResumeOut.from_orm(resume, user_name=current_user.name)
 
 
 @router.delete("/{resume_id}", dependencies=[Depends(oauth2_scheme)])
 async def delete_resume(
-    resume_id: int,
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(guide_required),
+        resume_id: int,
+        session: AsyncSession = Depends(get_async_session),
+        current_user: User = Depends(guide_required),
 ):
-    result = await session.execute(
+    resume = await session.execute(
         select(Resume).where(Resume.resume_id == resume_id)
     )
-    resume = result.scalar_one_or_none()
+    resume = resume.scalar_one_or_none()
 
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
-
-    if resume.user_id != current_user.user_id:
+    if resume.guide_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this resume.")
 
     await session.delete(resume)
