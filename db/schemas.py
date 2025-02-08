@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
     name: str
     email: str
     password: str
-    address: Optional[str]
+    address_id: Optional[int]
     user_type: str
 
 class SignIn(BaseModel):
@@ -32,7 +32,7 @@ class UserOut(BaseModel):
     user_id: int
     name: str
     email: EmailStr
-    address: Optional[str]
+    address_id: Optional[int]
     user_type: str
 
     class Config:
@@ -114,7 +114,6 @@ class ResumeOut(ResumeBase):
     rating: float
     languages: List["LanguageOut"]
     addresses: List["AddressOut"]
-    user_name: str
     price: int
     price_type: str
 
@@ -122,7 +121,7 @@ class ResumeOut(ResumeBase):
         from_attributes = True
 
     @classmethod
-    def from_orm(cls, resume, user_name: str):
+    def from_orm(cls, resume):
         resume_dict = {
             "resume_id": resume.resume_id,
             "guide_id": resume.guide_id,
@@ -132,8 +131,7 @@ class ResumeOut(ResumeBase):
             "addresses": resume.addresses,
             "price": resume.price,
             "price_type": resume.price_type,
-            "rating": getattr(resume, 'rating', 0.0),
-            "user_name": user_name
+            "rating": getattr(resume, 'rating', 0.0)
         }
         return cls(**resume_dict)
 
@@ -269,3 +267,9 @@ class BookTourOut(BookTourBase):
 
     class Config:
         orm_mode = True
+
+
+class ProfileOut(BaseModel):
+    user_name: str
+    email: str
+    address_id: int

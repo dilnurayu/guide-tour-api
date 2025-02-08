@@ -13,7 +13,8 @@ from router import (
     tour,
     booking,
     languages,
-    tour_review
+    tour_review,
+profile
 )
 from fastapi.openapi.utils import get_openapi
 
@@ -89,6 +90,7 @@ app.include_router(tour_review.router)
 app.include_router(tour.router)
 app.include_router(booking.router)
 app.include_router(languages.router)
+app.include_router(profile.router)
 
 
 

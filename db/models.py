@@ -10,8 +10,10 @@ class User(Base):
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
-    address = Column(Text, nullable=True)
+    address_id = Column(Integer, ForeignKey("addresses.address_id"), nullable=True)
     user_type = Column(String(50), nullable=False)
+
+    address = relationship("Address", back_populates="users")
 
     resumes = relationship("Resume", back_populates="user")
 
@@ -119,6 +121,7 @@ class Address(Base):
     region = relationship("Region")
     city = relationship("City")
 
+    users = relationship("User", back_populates="address")
     # Many-to-Many with Tour
     tours = relationship("Tour", secondary="tour_addresses", back_populates="addresses")
     # Many-to-Many with Guide
