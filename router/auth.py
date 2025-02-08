@@ -27,7 +27,7 @@ async def signup(
         name=user.name,
         email=user.email,
         hashed_password=hashed_password,
-        address=user.address,
+        address_id=user.address_id,
         user_type=user.user_type,
     )
     session.add(new_user)
