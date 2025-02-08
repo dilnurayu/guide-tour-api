@@ -76,8 +76,8 @@ async def create_resume(
 
 @router.get("/me", response_model=ResumeOut, dependencies=[Depends(oauth2_scheme)])
 async def get_my_resume(
-        current_user: User = Depends(guide_required),
-        session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(guide_required),
+    session: AsyncSession = Depends(get_async_session),
 ):
     result = await session.execute(
         select(Resume)
@@ -95,56 +95,65 @@ async def get_my_resume(
 
 @router.get("/{resume_id}", response_model=ResumeOut)
 async def get_resume(
-        resume_id: int,
-        session: AsyncSession = Depends(get_async_session),
+    resume_id: int,
+    session: AsyncSession = Depends(get_async_session),
 ):
-    resume = await get_resume_with_relations(resume_id, session)
-    if not resume:
+    result = await session.execute(
+        select(Resume, User.name.label("user_name"))
+        .options(joinedload(Resume.languages), joinedload(Resume.addresses))
+        .join(User, Resume.guide_id == User.user_id)
+        .where(Resume.resume_id == resume_id)
+    )
+    resume_row = result.unique().one_or_none()
+
+    if not resume_row:
         raise HTTPException(status_code=404, detail="Resume not found.")
 
+    resume, user_name = resume_row
     resume.rating = await get_average_rating(resume.guide_id, session)
-    return ResumeOut.from_orm(resume)
+    return ResumeOut.from_orm(resume, guide_name=user_name)
+
 
 
 @router.get("/", response_model=List[ResumeOut])
 async def list_resumes(
-        session: AsyncSession = Depends(get_async_session),
-        skip: int = 0,
-        limit: int = 10,
-        user_id: Optional[int] = None,
-        min_rating: Optional[float] = None,
-        language_id: Optional[int] = None,
-        address_id: Optional[int] = None,
+    session: AsyncSession = Depends(get_async_session),
+    skip: int = 0,
+    limit: int = 10,
+    user_id: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    language_id: Optional[int] = None,
+    address_id: Optional[int] = None,
 ):
-    """List resumes with optional filtering."""
     query = (
-        select(Resume)
+        select(Resume, User.name.label("user_name"))
         .options(joinedload(Resume.languages), joinedload(Resume.addresses))
+        .join(User, Resume.guide_id == User.user_id)
     )
 
-    # Apply filters
-    if user_id:
+    if user_id is not None:
         query = query.where(Resume.guide_id == user_id)
-    if language_id:
+    if language_id is not None:
         query = query.join(Resume.languages).where(Language.language_id == language_id)
-    if address_id:
+    if address_id is not None:
         query = query.join(Resume.addresses).where(Address.address_id == address_id)
 
     query = query.offset(skip).limit(limit)
     result = await session.execute(query)
-    resumes = result.unique().scalars().all()
+    resume_rows = result.unique().all()
 
-    response_resumes = []
-    for resume in resumes:
+    resumes = []
+    for resume, user_name in resume_rows:
         rating = await get_average_rating(resume.guide_id, session)
-        if min_rating is None or rating >= min_rating:
-            resume.rating = rating
-            response_resumes.append(ResumeOut.from_orm(resume))
+        if min_rating is not None and rating < min_rating:
+            continue
+        resume.rating = rating
+        resumes.append(ResumeOut.from_orm(resume, guide_name=user_name))
+    return resumes
 
-    return response_resumes
 
 
-@router.put("/{resume_id}", response_model=ResumeOut, dependencies=[Depends(oauth2_scheme)])
+@router.put("/{resume_id}", dependencies=[Depends(oauth2_scheme)])
 async def update_resume(
         resume_id: int,
         resume_data: ResumeCreate,
@@ -175,20 +184,19 @@ async def update_resume(
     await session.commit()
     await session.refresh(resume)
 
-    resume.rating = await get_average_rating(resume.guide_id, session)
-    return ResumeOut.from_orm(resume)
+    return {
+        "msg": "success"
+    }
 
 
 @router.delete("/{resume_id}", dependencies=[Depends(oauth2_scheme)])
 async def delete_resume(
-        resume_id: int,
-        session: AsyncSession = Depends(get_async_session),
-        current_user: User = Depends(guide_required),
+    resume_id: int,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(guide_required),
 ):
-    resume = await session.execute(
-        select(Resume).where(Resume.resume_id == resume_id)
-    )
-    resume = resume.scalar_one_or_none()
+    result = await session.execute(select(Resume).where(Resume.resume_id == resume_id))
+    resume = result.scalar_one_or_none()
 
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")

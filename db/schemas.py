@@ -3,8 +3,6 @@ from datetime import datetime, time
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
-from db.models import Resume
-
 
 class UserCreate(BaseModel):
     name: str
@@ -112,16 +110,17 @@ class ResumeOut(ResumeBase):
     resume_id: int
     guide_id: int
     rating: float
-    languages: List["LanguageOut"]
-    addresses: List["AddressOut"]
+    languages: List[LanguageOut]
+    addresses: List[AddressOut]
     price: int
     price_type: str
+    guide_name: Optional[str] = None
 
     class Config:
         from_attributes = True
 
     @classmethod
-    def from_orm(cls, resume):
+    def from_orm(cls, resume, guide_name: Optional[str] = None):
         resume_dict = {
             "resume_id": resume.resume_id,
             "guide_id": resume.guide_id,
@@ -131,9 +130,11 @@ class ResumeOut(ResumeBase):
             "addresses": resume.addresses,
             "price": resume.price,
             "price_type": resume.price_type,
-            "rating": getattr(resume, 'rating', 0.0)
+            "rating": getattr(resume, 'rating', 0.0),
+            "guide_name": guide_name,
         }
         return cls(**resume_dict)
+
 
 
 class ReviewBase(BaseModel):
