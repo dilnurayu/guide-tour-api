@@ -1,55 +1,98 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
-
 from db.models import Tour, User, Address, Language
 from db.schemas import TourCreate, TourOut
 from db.get_db import get_async_session
 from typing import Optional, List
 from datetime import date
 from core.security import guide_required, validate_guide_resume
+import os
+import uuid
+from datetime import datetime
+import aiofiles
 
 router = APIRouter(prefix="/tours", tags=["tours"])
 
 
+async def save_upload_file(upload_file: UploadFile) -> str:
+    UPLOAD_DIR = "uploads/tours"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    unique_id = str(uuid.uuid4())[:8]
+    file_extension = os.path.splitext(upload_file.filename)[1]
+    filename = f"{timestamp}_{unique_id}{file_extension}"
+
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    async with aiofiles.open(file_path, 'wb') as out_file:
+        content = await upload_file.read()
+        await out_file.write(content)
+
+    return f"/uploads/tours/{filename}"
+
+
+
+
 @router.post("/")
 async def create_tour(
-    tour: TourCreate,
+    tour_data: str = Form(...),
+    photos: List[UploadFile] = File(None),
     session: AsyncSession = Depends(get_async_session),
-    guide: User = Depends(validate_guide_resume),
+    guide: User = Depends(validate_guide_resume)
 ):
+    try:
+        tour_data_obj = TourCreate.parse_raw(tour_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid Tour Data: {e}")
+
     addresses = await session.execute(
-        select(Address).where(Address.address_id.in_(tour.destination_ids))
+        select(Address).where(Address.address_id.in_(tour_data_obj.destination_ids))
     )
     address_list = addresses.scalars().all()
 
     languages = await session.execute(
-        select(Language).where(Language.language_id.in_(tour.language_ids))
+        select(Language).where(Language.language_id.in_(tour_data_obj.language_ids))
     )
     language_list = languages.scalars().all()
 
-    if len(address_list) != len(tour.destination_ids):
+    if len(address_list) != len(tour_data_obj.destination_ids):
         raise HTTPException(status_code=400, detail="One or more address IDs are invalid.")
-
-    if len(language_list) != len(tour.language_ids):
+    if len(language_list) != len(tour_data_obj.language_ids):
         raise HTTPException(status_code=400, detail="One or more language IDs are invalid.")
+
+    photo_urls = []
+    if photos:
+        for photo in photos:
+            if not photo.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="Uploaded file is not an image")
+
+            content = await photo.read(2 * 1024 * 1024 + 1)
+            if len(content) > 2 * 1024 * 1024:
+                raise HTTPException(status_code=400, detail="File size too large")
+
+            await photo.seek(0)
+
+            photo_url = await save_upload_file(photo)
+            photo_urls.append(photo_url)
+
+    tour_dict = tour_data_obj.dict()
+
+    if isinstance(tour_dict.get("date"), datetime):
+        tour_dict["date"] = tour_dict["date"].date()
+
+    if photo_urls:
+        tour_dict['photo_gallery'] = photo_urls
+
+    tour_dict.pop("destination_ids", None)
+    tour_dict.pop("language_ids", None)
 
     new_tour = Tour(
         guide_id=guide.user_id,
-        guest_count=tour.guest_count,
-        price=tour.price,
-        price_type=tour.price_type,
-        payment_type=tour.payment_type,
-        date=tour.date,
-        departure_time=tour.departure_time,
-        return_time=tour.return_time,
-        duration=tour.duration,
-        dress_code=tour.dress_code,
-        not_included=tour.not_included,
-        included=tour.included,
-        photo_gallery=tour.photo_gallery,
-        about=tour.about,
+        **tour_dict,
         addresses=address_list,
         languages=language_list,
     )
@@ -58,9 +101,9 @@ async def create_tour(
     await session.commit()
     await session.refresh(new_tour)
 
-    return {
-        "msg": "success"
-    }
+    return {"msg": "success"}
+
+
 
 @router.get("/me", response_model=List[TourOut])
 async def list_my_tours(
