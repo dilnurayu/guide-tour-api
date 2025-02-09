@@ -16,9 +16,8 @@ import aiofiles
 
 router = APIRouter(prefix="/tours", tags=["tours"])
 
-
 async def save_upload_file(upload_file: UploadFile) -> str:
-    UPLOAD_DIR = "uploads/tours"
+    UPLOAD_DIR = "tmp/uploads/tours"
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -32,9 +31,7 @@ async def save_upload_file(upload_file: UploadFile) -> str:
         content = await upload_file.read()
         await out_file.write(content)
 
-    return f"/uploads/tours/{filename}"
-
-
+    return f"/temp/uploads/tours/{filename}"
 
 
 @router.post("/")

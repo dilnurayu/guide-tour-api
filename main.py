@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/tmp", StaticFiles(directory="tmp"), name="tmp")
 
 app.add_middleware(
     CORSMiddleware,
