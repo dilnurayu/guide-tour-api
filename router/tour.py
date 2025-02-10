@@ -2,7 +2,7 @@ import dropbox
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from starlette.concurrency import run_in_threadpool
 
 from db.models import Tour, User, Address, Language
@@ -208,3 +208,81 @@ async def list_tours_by_guide(
         raise HTTPException(status_code=404, detail="No tours found for this guide.")
 
     return [TourOut.from_orm(tour) for tour in tours]
+
+
+# @router.put("/{tour_id}", response_model=TourOut)
+# async def update_tour(
+#     tour_id: int,
+#     tour_data: TourCreate,
+#     session: AsyncSession = Depends(get_async_session),
+#     guide: User = Depends(validate_guide_resume)
+# ):
+#     # Fetch the existing tour with relationships loaded
+#     result = await session.execute(
+#         select(Tour)
+#         .options(
+#             joinedload(Tour.addresses),
+#             joinedload(Tour.languages)
+#         )
+#         .where(Tour.tour_id == tour_id)
+#     )
+#     tour = result.unique().scalar_one_or_none()
+#
+#     if not tour:
+#         raise HTTPException(status_code=404, detail="Tour not found.")
+#     if tour.guide_id != guide.user_id:
+#         raise HTTPException(status_code=403, detail="Not authorized to update this tour.")
+#
+#     # Validate new relations
+#     addresses_result = await session.execute(
+#         select(Address).where(Address.address_id.in_(tour_data.destination_ids))
+#     )
+#     address_list = addresses_result.scalars().all()
+#
+#     languages_result = await session.execute(
+#         select(Language).where(Language.language_id.in_(tour_data.language_ids))
+#     )
+#     language_list = languages_result.scalars().all()
+#
+#     if len(address_list) != len(tour_data.destination_ids):
+#         raise HTTPException(status_code=400, detail="One or more address IDs are invalid.")
+#     if len(language_list) != len(tour_data.language_ids):
+#         raise HTTPException(status_code=400, detail="One or more language IDs are invalid.")
+#
+#     # Update tour fields
+#     tour.guest_count = tour_data.guest_count
+#     tour.price = tour_data.price
+#     tour.price_type = tour_data.price_type
+#     tour.payment_type = tour_data.payment_type
+#     tour.date = tour_data.date
+#     tour.departure_time = tour_data.departure_time
+#     tour.return_time = tour_data.return_time
+#     tour.duration = tour_data.duration
+#     tour.dress_code = tour_data.dress_code
+#     tour.not_included = tour_data.not_included
+#     tour.included = tour_data.included
+#     tour.photo_gallery = tour_data.photo_gallery
+#     tour.about = tour_data.about
+#     tour.addresses = address_list
+#     tour.languages = language_list
+#
+#     await session.commit()
+#     await session.refresh(tour)
+#     return TourOut.from_orm(tour)
+
+
+@router.delete("/{tour_id}")
+async def delete_tour(
+    tour_id: int,
+    session: AsyncSession = Depends(get_async_session),
+    guide: User = Depends(validate_guide_resume)
+):
+    tour = await session.get(Tour, tour_id)
+    if not tour:
+        raise HTTPException(status_code=404, detail="Tour not found.")
+    if tour.guide_id != guide.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this tour.")
+
+    await session.delete(tour)
+    await session.commit()
+    return {"message": "Tour deleted successfully"}
