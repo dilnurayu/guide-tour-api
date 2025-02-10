@@ -41,7 +41,8 @@ async def save_upload_file(upload_file: UploadFile) -> str:
                     url = links[0].url
                 else:
                     raise e
-            return url
+            direct_url = url.replace("&dl=0", "&raw=1")
+            return direct_url
         except Exception as e:
             raise RuntimeError(f"Dropbox upload failed: {e}")
 
