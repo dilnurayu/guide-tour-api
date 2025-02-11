@@ -194,8 +194,8 @@ class GuideAddress(Base):
 
 class Tour(Base):
     __tablename__ = "tours"
-
     tour_id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
     guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     guest_count = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)

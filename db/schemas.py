@@ -203,6 +203,7 @@ class Language(BaseModel):
 
 class TourBase(BaseModel):
     guest_count: int
+    title: str
     price: float
     price_type: str
     payment_type: str
