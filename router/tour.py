@@ -1,5 +1,5 @@
 import dropbox
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload, joinedload
@@ -157,21 +157,29 @@ async def get_tour(
 
 @router.get("/", response_model=List[TourOut])
 async def list_tours(
-    session: AsyncSession = Depends(get_async_session),
-    skip: int = 0,
-    limit: int = 10,
-    min_price: Optional[float] = None,
-    max_price: Optional[float] = None,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
-    guide_id: Optional[int] = None,
+        session: AsyncSession = Depends(get_async_session),
+        skip: int = 0,
+        limit: int = 10,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[date] = None,
+        date_to: Optional[date] = None,
+        guide_id: Optional[int] = None,
+        region_ids: Optional[List[int]] = Query(None),
+        language_ids: Optional[List[int]] = Query(None),
+        min_rating: Optional[float] = None,
+        payment_type: Optional[str] = None,
+        min_guest_count: Optional[int] = None,
+        max_guest_count: Optional[int] = None,
 ):
     query = select(Tour).options(
         selectinload(Tour.addresses),
-        selectinload(Tour.languages)
+        selectinload(Tour.languages),
+        selectinload(Tour.tour_reviews)
     )
 
     filters = []
+
     if min_price is not None:
         filters.append(Tour.price >= min_price)
     if max_price is not None:
@@ -183,12 +191,26 @@ async def list_tours(
     if guide_id is not None:
         filters.append(Tour.guide_id == guide_id)
 
+    if region_ids:
+        filters.append(Tour.addresses.any(Address.region_id.in_(region_ids)))
+    if language_ids:
+        filters.append(Tour.languages.any(Language.language_id.in_(language_ids)))
+    if min_rating is not None:
+        filters.append(Tour.average_rating >= min_rating)
+    if payment_type is not None:
+        filters.append(Tour.payment_type == payment_type)
+    if min_guest_count is not None:
+        filters.append(Tour.guest_count >= min_guest_count)
+    if max_guest_count is not None:
+        filters.append(Tour.guest_count <= max_guest_count)
+
     if filters:
         query = query.where(and_(*filters))
 
     query = query.offset(skip).limit(limit)
     result = await session.execute(query)
     tours = result.scalars().all()
+
     return [TourOut.from_orm(tour) for tour in tours]
 
 

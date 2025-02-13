@@ -225,6 +225,7 @@ class TourOut(TourBase):
     tour_id: int
     destination_ids: List[int]
     language_ids: List[int]
+    average_rating: float = 0.0
 
     @classmethod
     def from_orm(cls, obj):
@@ -232,10 +233,13 @@ class TourOut(TourBase):
         data.pop('_sa_instance_state', None)
         data["destination_ids"] = [address.address_id for address in obj.addresses] if obj.addresses else []
         data["language_ids"] = [lang.language_id for lang in obj.languages] if obj.languages else []
-        return cls(**data)
 
-    class Config:
-        orm_mode = True
+        if obj.tour_reviews:
+            data["average_rating"] = sum(review.rating for review in obj.tour_reviews) / len(obj.tour_reviews)
+        else:
+            data["average_rating"] = 0.0
+
+        return cls(**data)
 
 
 
