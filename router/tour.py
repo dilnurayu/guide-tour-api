@@ -139,20 +139,25 @@ async def list_my_tours(
 
 @router.get("/{tour_id}", response_model=TourOut)
 async def get_tour(
-        tour_id: int,
-        session: AsyncSession = Depends(get_async_session),
+    tour_id: int,
+    session: AsyncSession = Depends(get_async_session),
 ):
-    result = await session.execute(
-        select(Tour)
-        .options(selectinload(Tour.addresses), selectinload(Tour.languages))
-        .where(Tour.tour_id == tour_id)
-    )
-    tour = result.scalar_one_or_none()
+    async with session.begin():
+        result = await session.execute(
+            select(Tour)
+            .options(
+                selectinload(Tour.addresses),
+                selectinload(Tour.languages),
+                selectinload(Tour.tour_reviews)
+            )
+            .where(Tour.tour_id == tour_id)
+        )
+        tour = result.scalar_one_or_none()
 
-    if not tour:
-        raise HTTPException(status_code=404, detail="Tour not found.")
+        if not tour:
+            raise HTTPException(status_code=404, detail="Tour not found")
 
-    return TourOut.from_orm(tour)
+        return TourOut.from_orm(tour)
 
 
 @router.get("/", response_model=List[TourOut])
@@ -221,7 +226,11 @@ async def list_tours_by_guide(
 ):
     result = await session.execute(
         select(Tour)
-        .options(selectinload(Tour.addresses), selectinload(Tour.languages))
+        .options(
+            selectinload(Tour.addresses),
+            selectinload(Tour.languages),
+            selectinload(Tour.tour_reviews)
+        )
         .where(Tour.guide_id == guide_id)
     )
     tours = result.scalars().all()
