@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from sqlalchemy.orm import joinedload
 from db.models import Resume, User, Review, Language, Address
 from db.schemas import ResumeCreate, ResumeOut
@@ -114,16 +116,20 @@ async def get_resume(
     return ResumeOut.from_orm(resume, guide_name=user_name)
 
 
-
 @router.get("/", response_model=List[ResumeOut])
 async def list_resumes(
-    session: AsyncSession = Depends(get_async_session),
-    skip: int = 0,
-    limit: int = 10,
-    user_id: Optional[int] = None,
-    min_rating: Optional[float] = None,
-    language_id: Optional[int] = None,
-    address_id: Optional[int] = None,
+        session: AsyncSession = Depends(get_async_session),
+        skip: int = 0,
+        limit: int = 10,
+        user_id: Optional[int] = None,
+        min_rating: Optional[float] = None,
+        max_rating: Optional[float] = None,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        language_ids: Optional[List[int]] = Query(None, description="Filter by language IDs"),
+        address_ids: Optional[List[int]] = Query(None, description="Filter by address IDs"),
+        price_type: Optional[str] = None,
+        experience_start_date: Optional[date] = None,
 ):
     query = (
         select(Resume, User.name.label("user_name"))
@@ -131,25 +137,39 @@ async def list_resumes(
         .join(User, Resume.guide_id == User.user_id)
     )
 
+    filters = []
     if user_id is not None:
-        query = query.where(Resume.guide_id == user_id)
-    if language_id is not None:
-        query = query.join(Resume.languages).where(Language.language_id == language_id)
-    if address_id is not None:
-        query = query.join(Resume.addresses).where(Address.address_id == address_id)
+        filters.append(Resume.guide_id == user_id)
+    if price_type is not None:
+        filters.append(Resume.price_type == price_type)
+    if experience_start_date is not None:
+        filters.append(Resume.experience_start_date == experience_start_date)
+    if min_price is not None:
+        filters.append(Resume.price >= min_price)
+    if max_price is not None:
+        filters.append(Resume.price <= max_price)
+    if language_ids is not None:
+        query = query.join(Resume.languages).where(Language.language_id.in_(language_ids))
+    if address_ids is not None:
+        query = query.join(Resume.addresses).where(Address.address_id.in_(address_ids))
+
+    if filters:
+        query = query.where(and_(*filters))
 
     query = query.offset(skip).limit(limit)
     result = await session.execute(query)
-    resume_rows = result.unique().all()
+    resumes = result.unique().all()
 
-    resumes = []
-    for resume, user_name in resume_rows:
+    response_resumes = []
+    for resume, user_name in resumes:
         rating = await get_average_rating(resume.guide_id, session)
         if min_rating is not None and rating < min_rating:
             continue
+        if max_rating is not None and rating > max_rating:
+            continue
         resume.rating = rating
-        resumes.append(ResumeOut.from_orm(resume, guide_name=user_name))
-    return resumes
+        response_resumes.append(ResumeOut.from_orm(resume, guide_name=user_name))
+    return response_resumes
 
 
 
