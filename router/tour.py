@@ -127,7 +127,8 @@ async def list_my_tours(
         select(Tour)
         .options(
             selectinload(Tour.addresses),
-            selectinload(Tour.languages)
+            selectinload(Tour.languages),
+            selectinload(Tour.tour_reviews)
         )
         .where(Tour.guide_id == current_user.user_id)
     )
