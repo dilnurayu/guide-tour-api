@@ -1,21 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-
-from core.security import tourist_required
-from db.models import Review, User
+from sqlalchemy import select
+from db.models import Review, Resume, User
 from db.schemas import ReviewCreate, ReviewOut
 from db.get_db import get_async_session
-from typing import Optional
+from typing import List
+from core.security import tourist_required, guide_required
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-
 @router.post("/", response_model=ReviewOut)
 async def create_review(
-        review: ReviewCreate,
-        session: AsyncSession = Depends(get_async_session),
-        current_user: User = Depends(tourist_required),
+    review: ReviewCreate,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(tourist_required),
 ):
     new_review = Review(
         resume_id=review.resume_id,
@@ -30,11 +28,10 @@ async def create_review(
     await session.refresh(new_review)
     return new_review
 
-
 @router.get("/{review_id}", response_model=ReviewOut)
 async def get_review(
-        review_id: int,
-        session: AsyncSession = Depends(get_async_session)
+    review_id: int,
+    session: AsyncSession = Depends(get_async_session)
 ):
     result = await session.execute(
         select(Review).where(Review.review_id == review_id)
@@ -46,26 +43,36 @@ async def get_review(
     return review
 
 
-@router.get("/", response_model=list[ReviewOut])
-async def list_reviews(
-        session: AsyncSession = Depends(get_async_session),
-        skip: int = 0,
-        limit: int = 10,
-        min_rating: Optional[float] = None,
-        resume_id: Optional[int] = None
+@router.get("/guide/me", response_model=List[ReviewOut])
+async def list_my_reviews(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(guide_required)
 ):
-    query = select(Review)
-
-    filters = []
-    if min_rating is not None:
-        filters.append(Review.rating >= min_rating)
-    if resume_id is not None:
-        filters.append(Review.resume_id == resume_id)
-
-    if filters:
-        query = query.where(and_(*filters))
-
-    query = query.offset(skip).limit(limit)
+    query = (
+        select(Review)
+        .join(Resume, Resume.resume_id == Review.resume_id)
+        .where(Resume.guide_id == current_user.user_id)
+    )
     result = await session.execute(query)
     reviews = result.scalars().all()
+    if not reviews:
+        raise HTTPException(status_code=404, detail="No reviews found for your profile.")
     return reviews
+
+
+@router.get("/guide/{guide_id}", response_model=List[ReviewOut])
+async def list_reviews_by_guide(
+    guide_id: int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    query = (
+        select(Review)
+        .join(Resume, Resume.resume_id == Review.resume_id)
+        .where(Resume.guide_id == guide_id)
+    )
+    result = await session.execute(query)
+    reviews = result.scalars().all()
+    if not reviews:
+        raise HTTPException(status_code=404, detail="No reviews found for this guide.")
+    return reviews
+
