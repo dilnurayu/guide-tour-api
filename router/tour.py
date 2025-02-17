@@ -5,7 +5,7 @@ from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload, joinedload
 from starlette.concurrency import run_in_threadpool
 
-from db.models import Tour, User, Address, Language
+from db.models import Tour, User, Address, Language, Resume
 from db.schemas import TourCreate, TourOut
 from db.get_db import get_async_session
 from typing import Optional, List
@@ -220,11 +220,19 @@ async def list_tours(
     return [TourOut.from_orm(tour) for tour in tours]
 
 
-@router.get("/guide/{guide_id}", response_model=List[TourOut])
-async def list_tours_by_guide(
-    guide_id: int,
+@router.get("/resume/{resume_id}/tours", response_model=List[TourOut])
+async def list_tours_by_resume(
+    resume_id: int,
     session: AsyncSession = Depends(get_async_session)
 ):
+    resume_result = await session.execute(
+        select(Resume.guide_id).where(Resume.resume_id == resume_id)
+    )
+    guide_id = resume_result.scalar_one_or_none()
+
+    if guide_id is None:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
     result = await session.execute(
         select(Tour)
         .options(
@@ -237,7 +245,7 @@ async def list_tours_by_guide(
     tours = result.scalars().all()
 
     if not tours:
-        raise HTTPException(status_code=404, detail="No tours found for this guide.")
+        raise HTTPException(status_code=404, detail="No tours found for this resume.")
 
     return [TourOut.from_orm(tour) for tour in tours]
 
