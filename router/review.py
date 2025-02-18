@@ -28,20 +28,6 @@ async def create_review(
     await session.refresh(new_review)
     return new_review
 
-@router.get("/resume/{review_id}", response_model=ReviewOut)
-async def get_review(
-    review_id: int,
-    session: AsyncSession = Depends(get_async_session)
-):
-    result = await session.execute(
-        select(Review).where(Review.review_id == review_id)
-    )
-    review = result.scalar_one_or_none()
-
-    if not review:
-        raise HTTPException(status_code=404, detail="Review not found.")
-    return review
-
 
 @router.get("/resume/me", response_model=List[ReviewOut])
 async def list_my_reviews(
@@ -58,6 +44,23 @@ async def list_my_reviews(
     if not reviews:
         raise HTTPException(status_code=404, detail="No reviews found for your profile.")
     return reviews
+
+
+@router.get("/resume/{review_id}", response_model=ReviewOut)
+async def get_review(
+    review_id: int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    result = await session.execute(
+        select(Review).where(Review.review_id == review_id)
+    )
+    review = result.scalar_one_or_none()
+
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found.")
+    return review
+
+
 
 
 @router.get("/resume/{resume_id}/reviews", response_model=List[ReviewOut])
