@@ -134,7 +134,7 @@ async def list_reviews(
     reviews = result.scalars().all()
     return reviews
 
-@router.get("/tour/{resume_id}/reviews", response_model=List[TourReviewOut])
+@router.get("/tour/{tour_id}/reviews", response_model=List[TourReviewOut])
 async def list_reviews_by_tour(
         tour_id: int,
         session: AsyncSession = Depends(get_async_session)
