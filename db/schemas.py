@@ -221,6 +221,7 @@ class TourCreate(TourBase):
     destination_ids: List[int]
     language_ids: List[int]
 
+
 class TourOut(TourBase):
     tour_id: int
     destination_ids: List[int]

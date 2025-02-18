@@ -257,47 +257,61 @@ async def edit_tour(
         session: AsyncSession = Depends(get_async_session),
         guide: User = Depends(validate_guide_resume)
 ):
-    tour = await session.get(Tour, tour_id)
-    if not tour:
-        raise HTTPException(status_code=404, detail="Tour not found")
-    if tour.guide_id != guide.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this tour")
-
     try:
         tour_data_obj = TourCreate.parse_raw(tour_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid Tour Data: {e}")
 
+    result = await session.execute(
+        select(Tour)
+        .options(
+            selectinload(Tour.addresses),
+            selectinload(Tour.languages)
+        )
+        .where(and_(
+            Tour.tour_id == tour_id,
+            Tour.guide_id == guide.user_id
+        ))
+    )
+    existing_tour = result.scalar_one_or_none()
+
+    if not existing_tour:
+        raise HTTPException(status_code=404, detail="Tour not found or you don't have permission to edit it")
+
     addresses = await session.execute(
         select(Address).where(Address.address_id.in_(tour_data_obj.destination_ids))
     )
     address_list = addresses.scalars().all()
+    if len(address_list) != len(tour_data_obj.destination_ids):
+        raise HTTPException(status_code=400, detail="One or more address IDs are invalid.")
 
     languages = await session.execute(
         select(Language).where(Language.language_id.in_(tour_data_obj.language_ids))
     )
     language_list = languages.scalars().all()
-
-    if len(address_list) != len(tour_data_obj.destination_ids):
-        raise HTTPException(status_code=400, detail="One or more address IDs are invalid")
     if len(language_list) != len(tour_data_obj.language_ids):
-        raise HTTPException(status_code=400, detail="One or more language IDs are invalid")
+        raise HTTPException(status_code=400, detail="One or more language IDs are invalid.")
 
-    tour_dict = tour_data_obj.dict(exclude={'destination_ids', 'language_ids', 'photo_gallery'})
+    tour_dict = tour_data_obj.dict()
 
     if isinstance(tour_dict.get("date"), datetime):
         tour_dict["date"] = tour_dict["date"].date()
 
-    for key, value in tour_dict.items():
-        setattr(tour, key, value)
+    tour_dict.pop("destination_ids", None)
+    tour_dict.pop("language_ids", None)
 
-    tour.addresses = address_list
-    tour.languages = language_list
+    tour_dict.pop("photo_gallery", None)
+
+    for key, value in tour_dict.items():
+        setattr(existing_tour, key, value)
+
+    existing_tour.addresses = address_list
+    existing_tour.languages = language_list
 
     await session.commit()
-    await session.refresh(tour)
+    await session.refresh(existing_tour)
 
-    return {"message": "Tour updated successfully", "tour": TourOut.from_orm(tour)}
+    return {"msg": "Tour updated successfully"}
 
 @router.delete("/{tour_id}")
 async def delete_tour(
