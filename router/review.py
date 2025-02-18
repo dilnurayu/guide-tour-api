@@ -60,7 +60,7 @@ async def list_my_reviews(
     return reviews
 
 
-@router.get("/resume/{resume_id}", response_model=List[ReviewOut])
+@router.get("/resume/{resume_id}/reviews", response_model=List[ReviewOut])
 async def list_reviews_by_resume(
         resume_id: int,
         session: AsyncSession = Depends(get_async_session)
@@ -132,4 +132,18 @@ async def list_reviews(
     query = query.offset(skip).limit(limit)
     result = await session.execute(query)
     reviews = result.scalars().all()
+    return reviews
+
+@router.get("/tour/{resume_id}/reviews", response_model=List[TourReviewOut])
+async def list_reviews_by_tour(
+        tour_id: int,
+        session: AsyncSession = Depends(get_async_session)
+):
+    query = select(TourReview).where(TourReview.tour_id == tour_id)
+    result = await session.execute(query)
+    reviews = result.scalars().all()
+
+    if not reviews:
+        raise HTTPException(status_code=404, detail="No reviews found for this resume.")
+
     return reviews
