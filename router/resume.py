@@ -172,25 +172,21 @@ async def list_resumes(
     return response_resumes
 
 
-
-@router.put("/{resume_id}", dependencies=[Depends(oauth2_scheme)])
-async def update_resume(
-        resume_id: int,
+@router.put("/me", response_model=ResumeOut, dependencies=[Depends(oauth2_scheme)])
+async def update_my_resume(
         resume_data: ResumeCreate,
         session: AsyncSession = Depends(get_async_session),
         current_user: User = Depends(guide_required),
 ):
-    resume = await session.execute(
+    result = await session.execute(
         select(Resume)
         .options(joinedload(Resume.languages), joinedload(Resume.addresses))
-        .where(Resume.resume_id == resume_id)
+        .where(Resume.guide_id == current_user.user_id)
     )
-    resume = resume.unique().scalar_one_or_none()
+    resume = result.unique().scalar_one_or_none()
 
     if not resume:
-        raise HTTPException(status_code=404, detail="Resume not found.")
-    if resume.guide_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this resume.")
+        raise HTTPException(status_code=404, detail="Resume not found for current guide.")
 
     languages, addresses = await validate_and_get_relations(resume_data, session)
 
@@ -204,9 +200,7 @@ async def update_resume(
     await session.commit()
     await session.refresh(resume)
 
-    return {
-        "msg": "success"
-    }
+    return ResumeOut.from_orm(resume)
 
 
 @router.delete("/{resume_id}", dependencies=[Depends(oauth2_scheme)])
