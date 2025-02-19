@@ -172,7 +172,7 @@ async def list_resumes(
     return response_resumes
 
 
-@router.put("/me", response_model=ResumeOut, dependencies=[Depends(oauth2_scheme)])
+@router.put("/me", dependencies=[Depends(oauth2_scheme)])
 async def update_my_resume(
         resume_data: ResumeCreate,
         session: AsyncSession = Depends(get_async_session),
@@ -180,7 +180,9 @@ async def update_my_resume(
 ):
     result = await session.execute(
         select(Resume)
-        .options(joinedload(Resume.languages), joinedload(Resume.addresses))
+        .options(
+            joinedload(Resume.languages),
+                 joinedload(Resume.addresses))
         .where(Resume.guide_id == current_user.user_id)
     )
     resume = result.unique().scalar_one_or_none()
@@ -200,7 +202,7 @@ async def update_my_resume(
     await session.commit()
     await session.refresh(resume)
 
-    return ResumeOut.from_orm(resume)
+    return {"msg": "Resume updated successfully"}
 
 
 @router.delete("/{resume_id}", dependencies=[Depends(oauth2_scheme)])
