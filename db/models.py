@@ -68,7 +68,7 @@ class TourReview(Base):
     __tablename__ = "tour_reviews"
 
     tour_review_id = Column(Integer, primary_key=True, index=True)
-    tour_id = Column(Integer, ForeignKey("tours.tour_id"), nullable=False)
+    tour_id = Column(Integer, ForeignKey("tours.tour_id", ondelete="CASCADE"), nullable=False)
     tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
@@ -216,7 +216,7 @@ class Tour(Base):
     languages = relationship("Language", secondary=tour_languages, back_populates="tours")
 
     tour_bookings = relationship("BookTour", back_populates="tour")
-    tour_reviews = relationship("TourReview", back_populates="tour")
+    tour_reviews = relationship("TourReview", back_populates="tour", cascade="all, delete-orphan")
 
 
 class BookGuide(Base):
