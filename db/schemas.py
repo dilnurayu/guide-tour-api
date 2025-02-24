@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, date
 
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
@@ -242,35 +242,29 @@ class TourOut(TourBase):
 
         return cls(**data)
 
-
-
-class BookGuideBase(BaseModel):
+class BookGuideCreate(BaseModel):
     guide_id: int
+    tour_date: date
     reserve_count: int
+    language_id: int
+    message: str
 
-
-class BookGuideCreate(BookGuideBase):
-    pass
-
-
-class BookGuideOut(BookGuideBase):
+class BookGuideOut(BookGuideCreate):
     book_id: int
+    confirmed: bool
 
     class Config:
         orm_mode = True
 
-
-class BookTourBase(BaseModel):
+class BookTourCreate(BaseModel):
     tour_id: int
     reserve_count: int
+    language_id: int
+    message: str
 
-
-class BookTourCreate(BookTourBase):
-    pass
-
-
-class BookTourOut(BookTourBase):
+class BookTourOut(BookTourCreate):
     book_id: int
+    confirmed: bool
 
     class Config:
         orm_mode = True

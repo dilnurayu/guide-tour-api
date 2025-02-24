@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, Date, ARRAY, Time, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, Date, ARRAY, Time, Table, Boolean
 from sqlalchemy.orm import relationship
 from db.base import Base
 
@@ -226,10 +226,13 @@ class BookGuide(Base):
     guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     reserve_count = Column(Integer, nullable=False)
     tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    confirmed = Column(Boolean, nullable=False, default=False)
+    language_id = Column(Integer, ForeignKey("languages.language_id"), nullable=False)
+    message = Column(String(255), nullable=True)
 
     guide = relationship("User", back_populates="guide_bookings", foreign_keys=[guide_id])
     tourist = relationship("User", back_populates="tourist_bookings", foreign_keys=[tourist_id])
-
+    language = relationship("Language", foreign_keys=[language_id])
 
 
 class BookTour(Base):
@@ -239,5 +242,9 @@ class BookTour(Base):
     tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     tour_id = Column(Integer, ForeignKey("tours.tour_id"), nullable=False)
     reserve_count = Column(Integer, nullable=False)
+    confirmed = Column(Boolean, nullable=False, default=False)
+    language_id = Column(Integer, ForeignKey("languages.language_id"), nullable=False)
+    message = Column(String(255), nullable=True)
 
     tour = relationship("Tour", back_populates="tour_bookings")
+    language = relationship("Language", foreign_keys=[language_id])
