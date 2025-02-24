@@ -11,7 +11,7 @@ from sqlalchemy.orm import joinedload
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
-@router.post("/guides", response_model=BookGuideOut)
+@router.post("/guides")
 async def book_guide(
     data: BookGuideCreate,
     session: AsyncSession = Depends(get_async_session),
@@ -31,7 +31,7 @@ async def book_guide(
     return {"msg": "Book created successfully"}
 
 
-@router.post("/tours", response_model=BookTourOut)
+@router.post("/tours")
 async def book_tour(
     data: BookTourCreate,
     session: AsyncSession = Depends(get_async_session),
