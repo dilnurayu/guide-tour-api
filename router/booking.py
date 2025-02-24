@@ -28,7 +28,7 @@ async def book_guide(
     session.add(new_booking)
     await session.commit()
     await session.refresh(new_booking)
-    return new_booking
+    return {"msg": "Book created successfully"}
 
 
 @router.post("/tours", response_model=BookTourOut)
@@ -47,34 +47,34 @@ async def book_tour(
     session.add(new_booking)
     await session.commit()
     await session.refresh(new_booking)
-    return new_booking
+    return {"msg": "Book created successfully"}
 
 
-@router.get("/guides/{booking_id}", response_model=BookGuideOut)
-async def get_guide_booking(
-    booking_id: int,
-    session: AsyncSession = Depends(get_async_session)
-):
-    result = await session.execute(
-        select(BookGuide).where(BookGuide.book_id == booking_id)
-    )
-    booking = result.scalar_one_or_none()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found.")
-    return booking
-
-@router.get("/tours/{booking_id}", response_model=BookTourOut)
-async def get_tour_booking(
-    booking_id: int,
-    session: AsyncSession = Depends(get_async_session)
-):
-    result = await session.execute(
-        select(BookTour).where(BookTour.book_id == booking_id)
-    )
-    booking = result.scalar_one_or_none()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found.")
-    return booking
+# @router.get("/guides/{booking_id}", response_model=BookGuideOut)
+# async def get_guide_booking(
+#     booking_id: int,
+#     session: AsyncSession = Depends(get_async_session)
+# ):
+#     result = await session.execute(
+#         select(BookGuide).where(BookGuide.book_id == booking_id)
+#     )
+#     booking = result.scalar_one_or_none()
+#     if not booking:
+#         raise HTTPException(status_code=404, detail="Booking not found.")
+#     return booking
+#
+# @router.get("/tours/{booking_id}", response_model=BookTourOut)
+# async def get_tour_booking(
+#     booking_id: int,
+#     session: AsyncSession = Depends(get_async_session)
+# ):
+#     result = await session.execute(
+#         select(BookTour).where(BookTour.book_id == booking_id)
+#     )
+#     booking = result.scalar_one_or_none()
+#     if not booking:
+#         raise HTTPException(status_code=404, detail="Booking not found.")
+#     return booking
 
 
 @router.put("/guides/{booking_id}/confirm")
@@ -126,36 +126,48 @@ async def confirm_tour_booking(
     return {"msg": "Booking Confirmed"}
 
 
-
 @router.get("/guides/guide/me", response_model=List[BookGuideOut])
 async def list_my_guide_bookings(
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(validate_guide_resume)
+        session: AsyncSession = Depends(get_async_session),
+        current_user: User = Depends(validate_guide_resume)
 ):
     result = await session.execute(
-        select(BookGuide)
+        select(BookGuide, User.name.label("tourist_name"))
+        .join(User, BookGuide.tourist_id == User.user_id)
         .where(BookGuide.guide_id == current_user.user_id)
     )
-    bookings = result.scalars().all()
-    if not bookings:
+    rows = result.all()
+
+    if not rows:
         raise HTTPException(status_code=404, detail="No guide bookings found for this guide.")
+
+    bookings = [
+        BookGuideOut.from_orm(booking, tourist_name=tourist_name)
+        for booking, tourist_name in rows
+    ]
     return bookings
+
 
 @router.get("/tours/guide/me", response_model=List[BookTourOut])
 async def list_my_tour_bookings(
-    session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(validate_guide_resume)
+        session: AsyncSession = Depends(get_async_session),
+        current_user: User = Depends(validate_guide_resume)
 ):
     stmt = (
-        select(BookTour)
+        select(BookTour, User.name.label("tourist_name"), Tour.title.label("tour_title"))
         .join(Tour, BookTour.tour_id == Tour.tour_id)
+        .join(User, BookTour.tourist_id == User.user_id)
         .where(Tour.guide_id == current_user.user_id)
         .options(joinedload(BookTour.tour))
     )
     result = await session.execute(stmt)
-    bookings = result.scalars().all()
-    if not bookings:
+    rows = result.all()
+    if not rows:
         raise HTTPException(status_code=404, detail="No tour bookings found for your tours.")
+    bookings = [
+        BookTourOut.from_orm(booking, tourist_name=tourist_name, tour_title=tour_title)
+        for booking, tourist_name, tour_title in rows
+    ]
     return bookings
 
 @router.get("/guides/tourist/me", response_model=List[BookGuideOut])
@@ -164,12 +176,17 @@ async def list_my_guide_bookings_tourist(
     current_user: User = Depends(tourist_required)
 ):
     result = await session.execute(
-        select(BookGuide)
+        select(BookGuide, User.name.label("guide_name"))
+        .join(User, BookGuide.guide_id == User.user_id)
         .where(BookGuide.tourist_id == current_user.user_id)
     )
-    bookings = result.scalars().all()
-    if not bookings:
+    rows = result.all()
+    if not rows:
         raise HTTPException(status_code=404, detail="No guide bookings found for this tourist.")
+    bookings = [
+        BookGuideOut.from_orm(booking, guide_name=guide_name)
+        for booking, guide_name in rows
+    ]
     return bookings
 
 @router.get("/tours/tourist/me", response_model=List[BookTourOut])
@@ -178,10 +195,15 @@ async def list_my_tour_bookings_tourist(
     current_user: User = Depends(tourist_required)
 ):
     result = await session.execute(
-        select(BookTour)
+        select(BookTour, Tour.title.label("tour_title"))
+        .join(Tour, BookTour.tour_id == Tour.tour_id)
         .where(BookTour.tourist_id == current_user.user_id)
     )
-    bookings = result.scalars().all()
-    if not bookings:
+    rows = result.all()
+    if not rows:
         raise HTTPException(status_code=404, detail="No tour bookings found for this tourist.")
+    bookings = [
+        BookTourOut.from_orm(booking, tour_title=tour_title)
+        for booking, tour_title in rows
+    ]
     return bookings

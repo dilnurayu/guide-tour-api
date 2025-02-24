@@ -242,6 +242,7 @@ class TourOut(TourBase):
 
         return cls(**data)
 
+
 class BookGuideCreate(BaseModel):
     guide_id: int
     tour_date: date
@@ -252,9 +253,17 @@ class BookGuideCreate(BaseModel):
 class BookGuideOut(BookGuideCreate):
     book_id: int
     confirmed: bool
+    guide_name: Optional[str] = None
 
     class Config:
         orm_mode = True
+
+    @classmethod
+    def from_orm(cls, booking, guide_name: Optional[str] = None):
+        data = booking.__dict__.copy()
+        data.pop("_sa_instance_state", None)
+        data["guide_name"] = guide_name or ""
+        return cls(**data)
 
 class BookTourCreate(BaseModel):
     tour_id: int
@@ -265,9 +274,18 @@ class BookTourCreate(BaseModel):
 class BookTourOut(BookTourCreate):
     book_id: int
     confirmed: bool
+    tour_title: Optional[str] = None
 
     class Config:
         orm_mode = True
+
+    @classmethod
+    def from_orm(cls, booking, tour_title: Optional[str] = None):
+        data = booking.__dict__.copy()
+        data.pop("_sa_instance_state", None)
+        data["tour_title"] = tour_title or ""
+        return cls(**data)
+
 
 
 class ProfileOut(BaseModel):

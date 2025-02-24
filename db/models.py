@@ -225,6 +225,7 @@ class BookGuide(Base):
     book_id = Column(Integer, primary_key=True, index=True)
     guide_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     reserve_count = Column(Integer, nullable=False)
+    tour_date = Column(Date, nullable=True)
     tourist_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     confirmed = Column(Boolean, nullable=False, default=False)
     language_id = Column(Integer, ForeignKey("languages.language_id"), nullable=False)
