@@ -254,15 +254,17 @@ class BookGuideOut(BookGuideCreate):
     book_id: int
     confirmed: bool
     guide_name: Optional[str] = None
+    tourist_name: Optional[str] = None  # Added tourist_name
 
     class Config:
         orm_mode = True
 
     @classmethod
-    def from_orm(cls, booking, guide_name: Optional[str] = None):
+    def from_orm(cls, booking, guide_name: Optional[str] = None, tourist_name: Optional[str] = None):
         data = booking.__dict__.copy()
         data.pop("_sa_instance_state", None)
         data["guide_name"] = guide_name or ""
+        data["tourist_name"] = tourist_name or ""  # Handle tourist_name
         return cls(**data)
 
 class BookTourCreate(BaseModel):
@@ -275,15 +277,17 @@ class BookTourOut(BookTourCreate):
     book_id: int
     confirmed: bool
     tour_title: Optional[str] = None
+    tourist_name: Optional[str] = None  # Added tourist_name
 
     class Config:
         orm_mode = True
 
     @classmethod
-    def from_orm(cls, booking, tour_title: Optional[str] = None):
+    def from_orm(cls, booking, tour_title: Optional[str] = None, tourist_name: Optional[str] = None):
         data = booking.__dict__.copy()
         data.pop("_sa_instance_state", None)
         data["tour_title"] = tour_title or ""
+        data["tourist_name"] = tourist_name or ""  # Handle tourist_name
         return cls(**data)
 
 

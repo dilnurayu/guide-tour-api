@@ -126,6 +126,7 @@ async def confirm_tour_booking(
     return {"msg": "Booking Confirmed"}
 
 
+
 @router.get("/guides/guide/me", response_model=List[BookGuideOut])
 async def list_my_guide_bookings(
         session: AsyncSession = Depends(get_async_session),
@@ -142,7 +143,7 @@ async def list_my_guide_bookings(
         raise HTTPException(status_code=404, detail="No guide bookings found for this guide.")
 
     bookings = [
-        BookGuideOut.from_orm(booking, tourist_name=tourist_name)
+        BookGuideOut.from_orm(booking, tourist_name=tourist_name)  # Now compatible
         for booking, tourist_name in rows
     ]
     return bookings
@@ -165,7 +166,7 @@ async def list_my_tour_bookings(
     if not rows:
         raise HTTPException(status_code=404, detail="No tour bookings found for your tours.")
     bookings = [
-        BookTourOut.from_orm(booking, tourist_name=tourist_name, tour_title=tour_title)
+        BookTourOut.from_orm(booking, tourist_name=tourist_name, tour_title=tour_title)  # Updated parameters
         for booking, tourist_name, tour_title in rows
     ]
     return bookings
@@ -184,7 +185,7 @@ async def list_my_guide_bookings_tourist(
     if not rows:
         raise HTTPException(status_code=404, detail="No guide bookings found for this tourist.")
     bookings = [
-        BookGuideOut.from_orm(booking, guide_name=guide_name)
+        BookGuideOut.from_orm(booking, guide_name=guide_name)  # Correctly using guide_name
         for booking, guide_name in rows
     ]
     return bookings
@@ -203,7 +204,7 @@ async def list_my_tour_bookings_tourist(
     if not rows:
         raise HTTPException(status_code=404, detail="No tour bookings found for this tourist.")
     bookings = [
-        BookTourOut.from_orm(booking, tour_title=tour_title)
+        BookTourOut.from_orm(booking, tour_title=tour_title)  # Correctly using tour_title
         for booking, tour_title in rows
     ]
     return bookings
