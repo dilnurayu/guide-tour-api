@@ -9,7 +9,7 @@ from core.security import tourist_required, guide_required
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-@router.post("/resume")
+@router.post("/resume", response_model=ReviewOut)
 async def create_review(
     review: ReviewCreate,
     session: AsyncSession = Depends(get_async_session),
@@ -51,34 +51,33 @@ async def get_review(
     session: AsyncSession = Depends(get_async_session)
 ):
     result = await session.execute(
-        select(Review, User.name.label("tourist_name"))
-        .join(User, Review.tourist_id == User.user_id)
-        .where(Review.review_id == review_id)
+        select(Review).where(Review.review_id == review_id)
     )
-    row = result.one_or_none()
-    if not row:
+    review = result.scalar_one_or_none()
+
+    if not review:
         raise HTTPException(status_code=404, detail="Review not found.")
-    review, tourist_name = row
-    return ReviewOut.from_orm(review, tourist_name=tourist_name)
+    return review
+
+
 
 
 @router.get("/resume/{resume_id}/reviews", response_model=List[ReviewOut])
 async def list_reviews_by_resume(
-    resume_id: int,
-    session: AsyncSession = Depends(get_async_session)
+        resume_id: int,
+        session: AsyncSession = Depends(get_async_session)
 ):
-    result = await session.execute(
-        select(Review, User.name.label("tourist_name"))
-        .join(User, Review.tourist_id == User.user_id)
-        .where(Review.resume_id == resume_id)
-    )
-    rows = result.all()
-    if not rows:
+    query = select(Review).where(Review.resume_id == resume_id)
+    result = await session.execute(query)
+    reviews = result.scalars().all()
+
+    if not reviews:
         raise HTTPException(status_code=404, detail="No reviews found for this resume.")
-    return [ReviewOut.from_orm(review, tourist_name=tourist_name) for review, tourist_name in rows]
+
+    return reviews
 
 # TOUR REVIEWS
-@router.post("/tour")
+@router.post("/tour", response_model=TourReviewOut)
 async def create_tour_review(
         tour_review: TourReviewCreate,
         session: AsyncSession = Depends(get_async_session),
@@ -98,7 +97,7 @@ async def create_tour_review(
 
 
 @router.get("/tour/{review_id}", response_model=TourReviewOut)
-async def get_review(
+async def get_tour_review(
         review_id: int,
         session: AsyncSession = Depends(get_async_session)
 ):
@@ -113,7 +112,7 @@ async def get_review(
 
 
 @router.get("/tour", response_model=list[TourReviewOut])
-async def list_reviews(
+async def list_tour_reviews(
         session: AsyncSession = Depends(get_async_session),
         skip: int = 0,
         limit: int = 10,
