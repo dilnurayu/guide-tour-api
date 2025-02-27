@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, Date, ARRAY, Time, Table, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, Date, ARRAY, Time, Table, Boolean, DateTime, \
+    func
 from sqlalchemy.orm import relationship
 from db.base import Base
 
@@ -59,6 +60,7 @@ class Review(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     rating = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     resume = relationship("Resume", back_populates="resume_reviews")
     tourist = relationship("User", back_populates="tourist_reviews")
@@ -73,6 +75,7 @@ class TourReview(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     rating = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     tour = relationship("Tour", back_populates="tour_reviews")
     tourist = relationship("User", back_populates="tour_reviews")
