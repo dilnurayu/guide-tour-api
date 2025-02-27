@@ -9,7 +9,7 @@ from core.security import tourist_required, guide_required
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-@router.post("/resume", response_model=ReviewOut)
+@router.post("/resume")
 async def create_review(
     review: ReviewCreate,
     session: AsyncSession = Depends(get_async_session),
@@ -18,7 +18,6 @@ async def create_review(
     new_review = Review(
         resume_id=review.resume_id,
         tourist_id=current_user.user_id,
-        title=review.title,
         description=review.description,
         rating=review.rating,
     )
@@ -26,7 +25,7 @@ async def create_review(
     session.add(new_review)
     await session.commit()
     await session.refresh(new_review)
-    return new_review
+    return {"msg": "success"}
 
 
 @router.get("/resume/me", response_model=List[ReviewOut])
@@ -52,34 +51,35 @@ async def get_review(
     session: AsyncSession = Depends(get_async_session)
 ):
     result = await session.execute(
-        select(Review).where(Review.review_id == review_id)
+        select(Review, User.name.label("tourist_name"))
+        .join(User, Review.tourist_id == User.user_id)
+        .where(Review.review_id == review_id)
     )
-    review = result.scalar_one_or_none()
-
-    if not review:
+    row = result.one_or_none()
+    if not row:
         raise HTTPException(status_code=404, detail="Review not found.")
-    return review
-
-
+    review, tourist_name = row
+    return ReviewOut.from_orm(review, tourist_name=tourist_name)
 
 
 @router.get("/resume/{resume_id}/reviews", response_model=List[ReviewOut])
 async def list_reviews_by_resume(
-        resume_id: int,
-        session: AsyncSession = Depends(get_async_session)
+    resume_id: int,
+    session: AsyncSession = Depends(get_async_session)
 ):
-    query = select(Review).where(Review.resume_id == resume_id)
-    result = await session.execute(query)
-    reviews = result.scalars().all()
-
-    if not reviews:
+    result = await session.execute(
+        select(Review, User.name.label("tourist_name"))
+        .join(User, Review.tourist_id == User.user_id)
+        .where(Review.resume_id == resume_id)
+    )
+    rows = result.all()
+    if not rows:
         raise HTTPException(status_code=404, detail="No reviews found for this resume.")
-
-    return reviews
+    return [ReviewOut.from_orm(review, tourist_name=tourist_name) for review, tourist_name in rows]
 
 # TOUR REVIEWS
-@router.post("/tour", response_model=TourReviewOut)
-async def create_review(
+@router.post("/tour")
+async def create_tour_review(
         tour_review: TourReviewCreate,
         session: AsyncSession = Depends(get_async_session),
         current_user: User = Depends(tourist_required),
@@ -87,7 +87,6 @@ async def create_review(
     new_review = TourReview(
         tour_id=tour_review.tour_id,
         tourist_id=current_user.user_id,
-        title=tour_review.title,
         description=tour_review.description,
         rating=tour_review.rating,
     )
@@ -95,7 +94,7 @@ async def create_review(
     session.add(new_review)
     await session.commit()
     await session.refresh(new_review)
-    return new_review
+    return {"msg": "success"}
 
 
 @router.get("/tour/{review_id}", response_model=TourReviewOut)

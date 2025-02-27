@@ -24,7 +24,6 @@ class LanguageOut(BaseModel):
 
     class Config:
         orm_mode = True
-        from_attributes = True
 
 class UserOut(BaseModel):
     user_id: int
@@ -34,7 +33,7 @@ class UserOut(BaseModel):
     user_type: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class Token(BaseModel):
@@ -139,7 +138,6 @@ class ResumeOut(ResumeBase):
 
 class ReviewBase(BaseModel):
     resume_id: int
-    title: str
     description: str | None = None
     rating: float
 
@@ -151,14 +149,13 @@ class ReviewCreate(ReviewBase):
 class ReviewOut(ReviewBase):
     review_id: int
     created_at: datetime
-
+    name: UserOut
     class Config:
         orm_mode = True
 
 
 class TourReviewBase(BaseModel):
     tour_id: int
-    title: str
     description: str
     rating: float
 
@@ -168,6 +165,7 @@ class TourReviewCreate(TourReviewBase):
 class TourReviewOut(TourReviewBase):
     tour_review_id: int
     created_at: datetime
+    name: UserOut
 
     class Config:
         orm_mode = True
