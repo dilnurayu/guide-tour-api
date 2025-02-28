@@ -150,7 +150,7 @@ class ReviewOut(ReviewBase):
     review_id: int
     created_at: datetime
     tourist: UserOut
-    
+
     class Config:
         orm_mode = True
 

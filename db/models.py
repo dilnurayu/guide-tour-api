@@ -62,7 +62,7 @@ class Review(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     resume = relationship("Resume", back_populates="resume_reviews")
-    tourist = relationship("User", back_populates="tourist_reviews")
+    tourist = relationship("User", back_populates="tourist_reviews", lazy="joined")
 
 
 class TourReview(Base):
@@ -76,7 +76,7 @@ class TourReview(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     tour = relationship("Tour", back_populates="tour_reviews")
-    tourist = relationship("User", back_populates="tour_reviews")
+    tourist = relationship("User", back_populates="tour_reviews", lazy="joined")
 
 class Region(Base):
     __tablename__ = "regions"
