@@ -94,7 +94,7 @@ class City(Base):
     region_id = Column(Integer, ForeignKey("regions.region_id"), nullable=False)
     city = Column(String(255), nullable=False, unique=True)
 
-    region = relationship("Region", back_populates="cities")
+    region = relationship("Region", back_populates="cities", lazy="joined")
 
 # Many-to-Many relationship for Tour <-> Address
 tour_addresses = Table(
@@ -169,7 +169,7 @@ class Resume(Base):
 
     user = relationship("User", back_populates="resumes")
     languages = relationship("Language", secondary=resume_languages, back_populates="resumes")
-    addresses = relationship("Address", secondary=resume_addresses, back_populates="resumes")
+    addresses = relationship("Address", secondary=resume_addresses, back_populates="resumes", lazy="joined")
     resume_reviews = relationship("Review", back_populates="resume")
 
 

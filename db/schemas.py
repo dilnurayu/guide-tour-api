@@ -55,6 +55,7 @@ class RegionOut(RegionBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class CityBase(BaseModel):
@@ -71,6 +72,7 @@ class CityOut(CityBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class AddressBase(BaseModel):
@@ -120,6 +122,7 @@ class ResumeOut(ResumeBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
     @classmethod
     def from_orm(cls, resume, guide_name: Optional[str] = None):
@@ -128,8 +131,8 @@ class ResumeOut(ResumeBase):
             "guide_id": resume.guide_id,
             "bio": resume.bio,
             "experience_start_date": resume.experience_start_date,
-            "languages": resume.languages,
-            "addresses": resume.addresses,
+            "languages": [LanguageOut.from_orm(lang) for lang in resume.languages],
+            "addresses": [AddressOut.from_orm(addr) for addr in resume.addresses],
             "price": resume.price,
             "price_type": resume.price_type,
             "rating": getattr(resume, 'rating', 0.0),
@@ -299,4 +302,4 @@ class BookTourOut(BookTourCreate):
 class ProfileOut(BaseModel):
     user_name: str
     email: str
-    address_id: int
+    address: AddressOut
