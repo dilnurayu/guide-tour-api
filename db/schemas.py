@@ -24,6 +24,7 @@ class LanguageOut(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 class UserOut(BaseModel):
     user_id: int
@@ -33,7 +34,7 @@ class UserOut(BaseModel):
     user_type: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class Token(BaseModel):
@@ -116,7 +117,7 @@ class ResumeOut(ResumeBase):
     guide_name: Optional[str] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
     @classmethod
     def from_orm(cls, resume, guide_name: Optional[str] = None):
