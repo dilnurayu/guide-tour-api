@@ -84,6 +84,8 @@ class AddressCreate(AddressBase):
 
 class AddressOut(AddressBase):
     address_id: int
+    region: RegionOut
+    city: CityOut
 
     class Config:
         orm_mode = True

@@ -119,8 +119,8 @@ class Address(Base):
     region_id = Column(Integer, ForeignKey("regions.region_id"), nullable=False)
     city_id = Column(Integer, ForeignKey("cities.city_id"), nullable=False)
 
-    region = relationship("Region")
-    city = relationship("City")
+    region = relationship("Region", lazy="joined")
+    city = relationship("City", lazy="joined")
 
     users = relationship("User", back_populates="address")
     # Many-to-Many with Tour
