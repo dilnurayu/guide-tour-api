@@ -149,7 +149,8 @@ class ReviewCreate(ReviewBase):
 class ReviewOut(ReviewBase):
     review_id: int
     created_at: datetime
-    name: UserOut
+    tourist: UserOut
+    
     class Config:
         orm_mode = True
 
@@ -165,7 +166,7 @@ class TourReviewCreate(TourReviewBase):
 class TourReviewOut(TourReviewBase):
     tour_review_id: int
     created_at: datetime
-    name: UserOut
+    tourist: UserOut
 
     class Config:
         orm_mode = True

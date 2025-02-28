@@ -9,7 +9,7 @@ from core.security import tourist_required, guide_required
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-@router.post("/resume", response_model=ReviewOut)
+@router.post("/resume")
 async def create_review(
     review: ReviewCreate,
     session: AsyncSession = Depends(get_async_session),
@@ -77,7 +77,7 @@ async def list_reviews_by_resume(
     return reviews
 
 # TOUR REVIEWS
-@router.post("/tour", response_model=TourReviewOut)
+@router.post("/tour")
 async def create_tour_review(
         tour_review: TourReviewCreate,
         session: AsyncSession = Depends(get_async_session),
