@@ -11,11 +11,11 @@ router = APIRouter(prefix="/profile", tags=["profile"])
 
 @router.get("/guide", response_model=ProfileOut)
 async def guide_profile(
-        session: AsyncSession = Depends(get_async_session),
-        current_user: User = Depends(guide_required),
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(guide_required),
 ):
     result = await session.execute(
-        select(User.name, User.email, Address.address_id)
+        select(User.name, User.email, Address)
         .join(Address, User.address_id == Address.address_id, isouter=True)
         .where(User.user_id == current_user.user_id)
     )
@@ -24,8 +24,9 @@ async def guide_profile(
     if not user_data:
         raise HTTPException(status_code=404, detail="User profile not found.")
 
-    user_name, email, address_id = user_data
-    return ProfileOut(user_name=user_name, email=email, address_id=address_id)
+    user_name, email, address = user_data
+    return ProfileOut(user_name=user_name, email=email, address=address)
+
 
 
 @router.get("/tourist", response_model=ProfileOut)
