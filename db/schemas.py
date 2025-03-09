@@ -140,6 +140,40 @@ class ResumeOut(ResumeBase):
         }
         return cls(**resume_dict)
 
+from pydantic import BaseModel
+from typing import List, Optional
+
+class ResumeDetailsOut(ResumeBase):
+    resume_id: int
+    guide_id: int
+    rating: float
+    languages: List[LanguageOut]
+    addresses: List[AddressOut]
+    price: int
+    price_type: str
+    guide_name: Optional[str] = None
+    tour_photos: Optional[List[str]]
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+    @classmethod
+    def from_orm(cls, resume, guide_name: Optional[str] = None, tour_photos: Optional[List[str]] = None):
+        return cls(
+            resume_id=resume.resume_id,
+            guide_id=resume.guide_id,
+            bio=resume.bio,
+            experience_start_date=resume.experience_start_date,
+            languages=[LanguageOut.from_orm(lang) for lang in resume.languages],
+            addresses=[AddressOut.from_orm(addr) for addr in resume.addresses],
+            price=resume.price,
+            price_type=resume.price_type,
+            rating=getattr(resume, 'rating', 0.0),
+            guide_name=guide_name,
+            tour_photos=tour_photos or []
+        )
+
 
 
 class ReviewBase(BaseModel):

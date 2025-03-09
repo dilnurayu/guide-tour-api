@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import joinedload
-from db.models import Resume, User, Review, Language, Address
-from db.schemas import ResumeCreate, ResumeOut
+from db.models import Resume, User, Review, Language, Address, Tour
+from db.schemas import ResumeCreate, ResumeOut, ResumeDetailsOut
 from db.get_db import get_async_session
 from typing import Optional, List
 from core.security import guide_required, oauth2_scheme
@@ -95,7 +95,7 @@ async def get_my_resume(
     return ResumeOut.from_orm(resume)
 
 
-@router.get("/{resume_id}", response_model=ResumeOut)
+@router.get("/{resume_id}", response_model=ResumeDetailsOut)
 async def get_resume(
     resume_id: int,
     session: AsyncSession = Depends(get_async_session),
@@ -113,7 +113,19 @@ async def get_resume(
 
     resume, user_name = resume_row
     resume.rating = await get_average_rating(resume.guide_id, session)
-    return ResumeOut.from_orm(resume, guide_name=user_name)
+
+    tour_photos_result = await session.execute(
+        select(Tour.photo_gallery).where(Tour.guide_id == resume.guide_id)
+    )
+    tour_photos = []
+    for row in tour_photos_result:
+        if row.photo_gallery:
+            tour_photos.extend(row.photo_gallery)
+
+    tour_photos = tour_photos[:3]
+
+    return ResumeDetailsOut.from_orm(resume, guide_name=user_name, tour_photos=tour_photos)
+
 
 
 @router.get("/", response_model=List[ResumeOut])
