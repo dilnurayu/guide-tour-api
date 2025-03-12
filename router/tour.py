@@ -17,7 +17,9 @@ from datetime import datetime
 
 router = APIRouter(prefix="/tours", tags=["tours"])
 
-DROPBOX_ACCESS_TOKEN = "sl.u.AFgJhC98Nde0lLx73gsxSKbjvmrRYgRUbksbfQYduQ6F5-kmX4Q-0XKtH25-KxvOd0WEHCFhQ3d-vITiRg2aAJ6jgxW3lVC3-H58eB2EWqAqvNzONFfqarHoU6FM5wu2LldgRfajkC_-gA9dRx6NhEfyx1ilDPT2kRMv7gqhvUy3yqlk3wG9nFyG09q54KNJ3sDrvMpSKYqCIgoDOLAgEdvDtrGcwvhL9iAeesrbxn9QcJSjpPKV0-jg3sJ6VID6za7mGieKV1W04Ef-pa9kqTGsHKe8tjw80Kk708t-f0K4AAwVo773LX3uUITgXy7LDgU2kuMVqltbPqk5ch90bQ5GUlcmqNaTrAqZv1BvpRyaG6aXnTpTTtIrdQ2dxOCfQ7gcpyLZmMNmVX7Vi0wVEOZg9d0CCTZxqtcZW8l5CwQ4BjLR4enzKEOpdf31Z1dYFapGBBt-n0vu8TU1sQmHkePfyJDlamsVrLuUm36AwzUI4Yul_6qMQZrop_7QraB9GTR-5NNrpJpaYCbBKffMrRHYvC9xkRjDEjsDJOkdFcnL-HZB8g6I5X_D_PnxBDf52xqQnIWYuwtQrZUTCokLwXUaQavpkuG8pDUVRYjbnhLMk2rZrQqSZ0mAed21rCK0y15LJPfJVx5dM3F7fgLRRQ4N42pQwRlPtrehPXFORqZWZH9BuFxiciSG09Wk3PJJolLSI9N7CU26BfTiKQLL59IWSVSfLPYLQ5sQaBWXgk-v4b1i4lDjKjGwhonbl88ml2EAfNnpWef5z_pj-bZvgsOKSXejDXkU0CDY2C9Wj5e5AGWH8Xc6IqB1D5cSO1Lqh_YeaR1uKBoQAmTJKD9g9MoFrGYNh7LBileHBx3HZsmH5yredYI-8caMvDS_jERf_cLD9D3aez63fu-b10XLuvm4Eix5gQjRlzQjcVWrPYMg_zBLtkpFtFHwauGSDysONylcZnPbpDxVg5aEFZHoptWtZhdwzQvnf0ZCY4zt59mWldKvCTQLGHuXZEJZEVPMFTpqa9pBPDFxEUaViSVF-sHsGnWD2bfQFxi0M3eMSg_q2W6RGBS97pXUjAZbZvdE0Dk8l-Cs8IkBqo34n1rw4_ohNmDpGhQkednkyIj3YQ_2Or-l3y7mTf7cmJM3_sfxIxsFmcpIAuzp8mk5P5P3ejbFGAAnkm06oqHUTaLXNmxcAN09-mnJFg0Be3PBwS-S3XznheM7hiOT9J7zr7X-RxjSfW5hcSSsQ8Qv69w3H4oDscipKpWxht5d7D5dBWRNYAyI65sngNkOZ2Sk-F8AJVqm"
+DROPBOX_APP_KEY = "c867asn0edqf8mv"
+DROPBOX_REFRESH_TOKEN = "9GYSvVIsEVoAAAAAAAAAAaOekDg4O5OAKc0Xiet94FwkDB9DIRJHhdyGKn17tCDn"
+
 async def save_upload_file(upload_file: UploadFile) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     unique_id = str(uuid.uuid4())[:8]
@@ -29,7 +31,10 @@ async def save_upload_file(upload_file: UploadFile) -> str:
 
     def upload_to_dropbox() -> str:
         try:
-            dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+            dbx = dropbox.Dropbox(
+                app_key=DROPBOX_APP_KEY,
+                oauth2_refresh_token=DROPBOX_REFRESH_TOKEN
+            )
             dbx.files_upload(file_content, dropbox_path, mode=dropbox.files.WriteMode("overwrite"))
             try:
                 shared_link_metadata = dbx.sharing_create_shared_link_with_settings(dropbox_path)
