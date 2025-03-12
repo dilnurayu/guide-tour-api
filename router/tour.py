@@ -19,6 +19,7 @@ router = APIRouter(prefix="/tours", tags=["tours"])
 
 DROPBOX_APP_KEY = "c867asn0edqf8mv"
 DROPBOX_REFRESH_TOKEN = "9GYSvVIsEVoAAAAAAAAAAaOekDg4O5OAKc0Xiet94FwkDB9DIRJHhdyGKn17tCDn"
+DROPBOX_APP_SECRET = "wwzmagewt3iex43"
 
 async def save_upload_file(upload_file: UploadFile) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -33,6 +34,7 @@ async def save_upload_file(upload_file: UploadFile) -> str:
         try:
             dbx = dropbox.Dropbox(
                 app_key=DROPBOX_APP_KEY,
+                app_secret=DROPBOX_APP_SECRET,
                 oauth2_refresh_token=DROPBOX_REFRESH_TOKEN
             )
             dbx.files_upload(file_content, dropbox_path, mode=dropbox.files.WriteMode("overwrite"))
@@ -47,6 +49,7 @@ async def save_upload_file(upload_file: UploadFile) -> str:
                     raise e
             direct_url = url.replace("&dl=0", "&raw=1")
             return direct_url
+
         except Exception as e:
             raise RuntimeError(f"Dropbox upload failed: {e}")
 
