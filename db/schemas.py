@@ -140,9 +140,6 @@ class ResumeOut(ResumeBase):
         }
         return cls(**resume_dict)
 
-from pydantic import BaseModel
-from typing import List, Optional
-
 class ResumeDetailsOut(ResumeBase):
     resume_id: int
     guide_id: int
@@ -316,7 +313,7 @@ class BookTourOut(BookTourCreate):
     book_id: int
     confirmed: bool
     tour_title: Optional[str] = None
-    tourist_name: Optional[str] = None  # Added tourist_name
+    tourist_name: Optional[str] = None
 
     class Config:
         orm_mode = True

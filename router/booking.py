@@ -76,7 +76,7 @@ async def book_tour(
 #         raise HTTPException(status_code=404, detail="Booking not found.")
 #     return booking
 
-
+#HERE WE ARE CONFIRMING THE GUIDE BOOKING
 @router.put("/guides/{booking_id}/confirm")
 async def confirm_guide_booking(
         booking_id: int,
@@ -101,7 +101,7 @@ async def confirm_guide_booking(
 
 
 
-
+#HERE WE ARE CONFIRMING THE TOUR BOOKING
 @router.put("/tour/{booking_id}/confirm")
 async def confirm_tour_booking(
     booking_id: int,
@@ -126,7 +126,7 @@ async def confirm_tour_booking(
     return {"msg": "Booking Confirmed"}
 
 
-
+# HERE WE ARE LISTING THE GUIDE'S BOOKINGS
 @router.get("/guides/guide/me", response_model=List[BookGuideOut])
 async def list_my_guide_bookings(
         session: AsyncSession = Depends(get_async_session),
@@ -149,6 +149,7 @@ async def list_my_guide_bookings(
     return bookings
 
 
+# HERE WE ARE LISTING THE GUIDE'S TOUR BOOKINGS
 @router.get("/tours/guide/me", response_model=List[BookTourOut])
 async def list_my_tour_bookings(
         session: AsyncSession = Depends(get_async_session),
@@ -171,6 +172,7 @@ async def list_my_tour_bookings(
     ]
     return bookings
 
+# HERE WE ARE LISTING TOURIST'S GUIDE BOOKING
 @router.get("/guides/tourist/me", response_model=List[BookGuideOut])
 async def list_my_guide_bookings_tourist(
     session: AsyncSession = Depends(get_async_session),
@@ -190,6 +192,7 @@ async def list_my_guide_bookings_tourist(
     ]
     return bookings
 
+# HERE WE ARE LISTING TOURIST'S TOUR BOOKING
 @router.get("/tours/tourist/me", response_model=List[BookTourOut])
 async def list_my_tour_bookings_tourist(
     session: AsyncSession = Depends(get_async_session),
