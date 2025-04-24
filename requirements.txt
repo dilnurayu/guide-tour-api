@@ -3,6 +3,7 @@ asyncpg
 sqlalchemy
 databases
 passlib
+bcrypt
 python-jose
 pydantic
 pydantic_settings

@@ -8,7 +8,6 @@ from db.get_db import get_async_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-#Sign Up
 @router.post("/signup", response_model=Token)
 async def signup(
     user: UserCreate,
@@ -37,7 +36,6 @@ async def signup(
     access_token = create_access_token({"sub": new_user.email, "role": new_user.user_type})
     return {"access_token": access_token, "token_type": "bearer"}
 
-#Sing In
 @router.post("/signin", response_model=Token)
 async def signin(
     credentials: SignIn,
