@@ -191,6 +191,7 @@ class Language(BaseModel):
     language_id: int
     name: str
 
+
 class TourBase(BaseModel):
     guest_count: int
     title: str
@@ -211,24 +212,19 @@ class TourCreate(TourBase):
     destination_ids: List[int]
     language_ids: List[int]
 
-
 class TourOut(TourBase):
     tour_id: int
+    guide_id: int
     addresses: List[AddressOut]
     languages: List[LanguageOut]
     average_rating: float = 0.0
 
-    @classmethod
-    def from_orm(cls, obj):
-        data = obj.__dict__.copy()
-        data.pop('_sa_instance_state', None)
+    class Config:
+        orm_mode = True
+        from_attributes = True
 
-        if obj.tour_reviews:
-            data["average_rating"] = sum(review.rating for review in obj.tour_reviews) / len(obj.tour_reviews)
-        else:
-            data["average_rating"] = 0.0
-
-        return cls(**data)
+class TourCreateWithFiles(BaseModel):
+    tour_data: TourCreate
 
 
 class BookGuideCreate(BaseModel):
