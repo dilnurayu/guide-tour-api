@@ -45,20 +45,20 @@ async def list_my_reviews(
     return reviews
 
 
-@router.get("/resume/{review_id}", response_model=ReviewOut)
-async def get_review(
-    review_id: int,
-    session: AsyncSession = Depends(get_async_session)
-):
-    result = await session.execute(
-        select(Review).where(Review.review_id == review_id)
-    )
-    review = result.scalar_one_or_none()
-
-    if not review:
-        raise HTTPException(status_code=404, detail="Review not found.")
-    return review
-
+# @router.get("/resume/{review_id}", response_model=ReviewOut)
+# async def get_review(
+#     review_id: int,
+#     session: AsyncSession = Depends(get_async_session)
+# ):
+#     result = await session.execute(
+#         select(Review).where(Review.review_id == review_id)
+#     )
+#     review = result.scalar_one_or_none()
+#
+#     if not review:
+#         raise HTTPException(status_code=404, detail="Review not found.")
+#     return review
+#
 
 
 
@@ -96,44 +96,44 @@ async def create_tour_review(
     return {"msg": "success"}
 
 
-@router.get("/tour/{review_id}", response_model=TourReviewOut)
-async def get_tour_review(
-        review_id: int,
-        session: AsyncSession = Depends(get_async_session)
-):
-    result = await session.execute(
-        select(TourReview).where(TourReview.review_id == review_id)
-    )
-    review = result.scalar_one_or_none()
+# @router.get("/tour/{review_id}", response_model=TourReviewOut)
+# async def get_tour_review(
+#         review_id: int,
+#         session: AsyncSession = Depends(get_async_session)
+# ):
+#     result = await session.execute(
+#         select(TourReview).where(TourReview.review_id == review_id)
+#     )
+#     review = result.scalar_one_or_none()
+#
+#     if not review:
+#         raise HTTPException(status_code=404, detail="Review not found.")
+#     return review
 
-    if not review:
-        raise HTTPException(status_code=404, detail="Review not found.")
-    return review
 
-
-@router.get("/tour", response_model=list[TourReviewOut])
-async def list_tour_reviews(
-        session: AsyncSession = Depends(get_async_session),
-        skip: int = 0,
-        limit: int = 10,
-        min_rating: Optional[float] = None,
-        tour_id: Optional[int] = None
-):
-    query = select(TourReview)
-
-    filters = []
-    if min_rating is not None:
-        filters.append(TourReview.rating >= min_rating)
-    if tour_id is not None:
-        filters.append(TourReview.tour_id == tour_id)
-
-    if filters:
-        query = query.where(and_(*filters))
-
-    query = query.offset(skip).limit(limit)
-    result = await session.execute(query)
-    reviews = result.scalars().all()
-    return reviews
+# @router.get("/tour", response_model=list[TourReviewOut])
+# async def list_tour_reviews(
+#         session: AsyncSession = Depends(get_async_session),
+#         skip: int = 0,
+#         limit: int = 10,
+#         min_rating: Optional[float] = None,
+#         tour_id: Optional[int] = None
+# ):
+#     query = select(TourReview)
+#
+#     filters = []
+#     if min_rating is not None:
+#         filters.append(TourReview.rating >= min_rating)
+#     if tour_id is not None:
+#         filters.append(TourReview.tour_id == tour_id)
+#
+#     if filters:
+#         query = query.where(and_(*filters))
+#
+#     query = query.offset(skip).limit(limit)
+#     result = await session.execute(query)
+#     reviews = result.scalars().all()
+#     return reviews
 
 @router.get("/tour/{tour_id}/reviews", response_model=List[TourReviewOut])
 async def list_reviews_by_tour(
@@ -145,6 +145,6 @@ async def list_reviews_by_tour(
     reviews = result.scalars().all()
 
     if not reviews:
-        raise HTTPException(status_code=404, detail="No reviews found for this resume.")
+        raise HTTPException(status_code=404, detail="No reviews found for this tour.")
 
     return reviews

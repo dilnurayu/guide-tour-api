@@ -39,13 +39,9 @@ async def get_language(
 
 @router.get("/", response_model=list[LanguageOut])
 async def list_languages(
-    session: AsyncSession = Depends(get_async_session),
-    skip: int = 0,
-    limit: int = 10,
+    session: AsyncSession = Depends(get_async_session)
 ):
-    result = await session.execute(
-        select(Language).offset(skip).limit(limit)
-    )
+    result = await session.execute(select(Language))
     languages = result.scalars().all()
     return languages
 
