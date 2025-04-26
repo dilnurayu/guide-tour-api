@@ -97,6 +97,8 @@ class AddressOut(AddressBase):
 class ResumeBase(BaseModel):
     bio: Optional[str] = None
     experience_start_date: Optional[datetime] = None
+    languages: Optional[List[int]] = None
+    addresses: Optional[List[int]] = None
     price: Optional[int] = None
     price_type: Optional[str] = None
 
@@ -111,17 +113,63 @@ class ResumeCreate(ResumeBase):
 class ResumeOut(ResumeBase):
     resume_id: int
     guide_id: int
-    rating: float = 0.0
+    rating: float
     languages: List[LanguageOut]
     addresses: List[AddressOut]
+    price: int
+    price_type: str
     guide_name: Optional[str] = None
 
     class Config:
         orm_mode = True
         from_attributes = True
 
-class ResumeDetailsOut(ResumeOut):
+    @classmethod
+    def from_orm(cls, resume, guide_name: Optional[str] = None):
+        resume_dict = {
+            "resume_id": resume.resume_id,
+            "guide_id": resume.guide_id,
+            "bio": resume.bio,
+            "experience_start_date": resume.experience_start_date,
+            "languages": [LanguageOut.from_orm(lang) for lang in resume.languages],
+            "addresses": [AddressOut.from_orm(addr) for addr in resume.addresses],
+            "price": resume.price,
+            "price_type": resume.price_type,
+            "rating": getattr(resume, 'rating', 0.0),
+            "guide_name": guide_name,
+        }
+        return cls(**resume_dict)
+
+class ResumeDetailsOut(ResumeBase):
+    resume_id: int
+    guide_id: int
+    rating: float
+    languages: List[LanguageOut]
+    addresses: List[AddressOut]
+    price: int
+    price_type: str
+    guide_name: Optional[str] = None
     tour_photos: Optional[List[str]]
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+    @classmethod
+    def from_orm(cls, resume, guide_name: Optional[str] = None, tour_photos: Optional[List[str]] = None):
+        return cls(
+            resume_id=resume.resume_id,
+            guide_id=resume.guide_id,
+            bio=resume.bio,
+            experience_start_date=resume.experience_start_date,
+            languages=[LanguageOut.from_orm(lang) for lang in resume.languages],
+            addresses=[AddressOut.from_orm(addr) for addr in resume.addresses],
+            price=resume.price,
+            price_type=resume.price_type,
+            rating=getattr(resume, 'rating', 0.0),
+            guide_name=guide_name,
+            tour_photos=tour_photos or []
+        )
 
 
 
@@ -191,7 +239,6 @@ class Language(BaseModel):
     language_id: int
     name: str
 
-
 class TourBase(BaseModel):
     guest_count: int
     title: str
@@ -212,19 +259,24 @@ class TourCreate(TourBase):
     destination_ids: List[int]
     language_ids: List[int]
 
+
 class TourOut(TourBase):
     tour_id: int
-    guide_id: int
     addresses: List[AddressOut]
     languages: List[LanguageOut]
     average_rating: float = 0.0
 
-    class Config:
-        orm_mode = True
-        from_attributes = True
+    @classmethod
+    def from_orm(cls, obj):
+        data = obj.__dict__.copy()
+        data.pop('_sa_instance_state', None)
 
-class TourCreateWithFiles(BaseModel):
-    tour_data: TourCreate
+        if obj.tour_reviews:
+            data["average_rating"] = sum(review.rating for review in obj.tour_reviews) / len(obj.tour_reviews)
+        else:
+            data["average_rating"] = 0.0
+
+        return cls(**data)
 
 
 class BookGuideCreate(BaseModel):

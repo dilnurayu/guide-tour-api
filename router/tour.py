@@ -59,24 +59,29 @@ async def save_upload_file(upload_file: UploadFile) -> str:
 
 @router.post("/")
 async def create_tour(
-        tour_data: TourCreate,
-        photos: List[UploadFile] = File(None),
-        session: AsyncSession = Depends(get_async_session),
-        guide: User = Depends(validate_guide_resume)
+    tour_data: str = Form(...),
+    photos: List[UploadFile] = File(None),
+    session: AsyncSession = Depends(get_async_session),
+    guide: User = Depends(validate_guide_resume)
 ):
+    try:
+        tour_data_obj = TourCreate.parse_raw(tour_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid Tour Data: {e}")
+
     addresses = await session.execute(
-        select(Address).where(Address.address_id.in_(tour_data.destination_ids))
+        select(Address).where(Address.address_id.in_(tour_data_obj.destination_ids))
     )
     address_list = addresses.scalars().all()
 
     languages = await session.execute(
-        select(Language).where(Language.language_id.in_(tour_data.language_ids))
+        select(Language).where(Language.language_id.in_(tour_data_obj.language_ids))
     )
     language_list = languages.scalars().all()
 
-    if len(address_list) != len(tour_data.destination_ids):
+    if len(address_list) != len(tour_data_obj.destination_ids):
         raise HTTPException(status_code=400, detail="One or more address IDs are invalid.")
-    if len(language_list) != len(tour_data.language_ids):
+    if len(language_list) != len(tour_data_obj.language_ids):
         raise HTTPException(status_code=400, detail="One or more language IDs are invalid.")
 
     photo_urls = []
@@ -94,14 +99,16 @@ async def create_tour(
             photo_url = await save_upload_file(photo)
             photo_urls.append(photo_url)
 
-    # Convert to dict and prepare for database
-    tour_dict = tour_data.dict(exclude={"destination_ids", "language_ids"})
+    tour_dict = tour_data_obj.dict()
 
     if isinstance(tour_dict.get("date"), datetime):
         tour_dict["date"] = tour_dict["date"].date()
 
     if photo_urls:
         tour_dict['photo_gallery'] = photo_urls
+
+    tour_dict.pop("destination_ids", None)
+    tour_dict.pop("language_ids", None)
 
     new_tour = Tour(
         guide_id=guide.user_id,
@@ -117,10 +124,11 @@ async def create_tour(
     return {"msg": "success"}
 
 
+
 @router.get("/me", response_model=List[TourOut])
 async def list_my_tours(
-        session: AsyncSession = Depends(get_async_session),
-        current_user: User = Depends(validate_guide_resume)
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(validate_guide_resume)
 ):
     result = await session.execute(
         select(Tour)
@@ -134,28 +142,13 @@ async def list_my_tours(
     tours = result.scalars().all()
     if not tours:
         raise HTTPException(status_code=404, detail="No tours found for this guide.")
-
-    # Process each tour to calculate average rating before conversion to schema
-    response_tours = []
-    for tour in tours:
-        # Calculate average rating
-        if tour.tour_reviews:
-            avg_rating = sum(review.rating for review in tour.tour_reviews) / len(tour.tour_reviews)
-        else:
-            avg_rating = 0.0
-
-        # Use ORM mode to convert to schema
-        tour_out = TourOut.from_orm(tour)
-        tour_out.average_rating = avg_rating
-        response_tours.append(tour_out)
-
-    return response_tours
+    return [TourOut.from_orm(tour) for tour in tours]
 
 
 @router.get("/{tour_id}", response_model=TourOut)
 async def get_tour(
-        tour_id: int,
-        session: AsyncSession = Depends(get_async_session),
+    tour_id: int,
+    session: AsyncSession = Depends(get_async_session),
 ):
     async with session.begin():
         result = await session.execute(
@@ -172,16 +165,7 @@ async def get_tour(
         if not tour:
             raise HTTPException(status_code=404, detail="Tour not found")
 
-        # Calculate average rating
-        avg_rating = 0.0
-        if tour.tour_reviews:
-            avg_rating = sum(review.rating for review in tour.tour_reviews) / len(tour.tour_reviews)
-
-        # Use ORM mode to convert to schema
-        tour_out = TourOut.from_orm(tour)
-        tour_out.average_rating = avg_rating
-
-        return tour_out
+        return TourOut.from_orm(tour)
 
 
 @router.get("/", response_model=List[TourOut])
@@ -240,27 +224,13 @@ async def list_tours(
     result = await session.execute(query)
     tours = result.scalars().all()
 
-    # Process each tour to calculate average rating before conversion to schema
-    response_tours = []
-    for tour in tours:
-        # Calculate average rating
-        if tour.tour_reviews:
-            avg_rating = sum(review.rating for review in tour.tour_reviews) / len(tour.tour_reviews)
-        else:
-            avg_rating = 0.0
-
-        # Use ORM mode to convert to schema
-        tour_out = TourOut.from_orm(tour)
-        tour_out.average_rating = avg_rating
-        response_tours.append(tour_out)
-
-    return response_tours
+    return [TourOut.from_orm(tour) for tour in tours]
 
 
 @router.get("/resume/{resume_id}/tours", response_model=List[TourOut])
 async def list_tours_by_resume(
-        resume_id: int,
-        session: AsyncSession = Depends(get_async_session)
+    resume_id: int,
+    session: AsyncSession = Depends(get_async_session)
 ):
     resume_result = await session.execute(
         select(Resume.guide_id).where(Resume.resume_id == resume_id)
@@ -284,30 +254,21 @@ async def list_tours_by_resume(
     if not tours:
         raise HTTPException(status_code=404, detail="No tours found for this resume.")
 
-    # Process each tour to calculate average rating before conversion to schema
-    response_tours = []
-    for tour in tours:
-        # Calculate average rating
-        if tour.tour_reviews:
-            avg_rating = sum(review.rating for review in tour.tour_reviews) / len(tour.tour_reviews)
-        else:
-            avg_rating = 0.0
-
-        # Use ORM mode to convert to schema
-        tour_out = TourOut.from_orm(tour)
-        tour_out.average_rating = avg_rating
-        response_tours.append(tour_out)
-
-    return response_tours
+    return [TourOut.from_orm(tour) for tour in tours]
 
 
 @router.put("/{tour_id}")
 async def edit_tour(
         tour_id: int,
-        tour_data: TourCreate,
+        tour_data: str = Form(...),
         session: AsyncSession = Depends(get_async_session),
         guide: User = Depends(validate_guide_resume)
 ):
+    try:
+        tour_data_obj = TourCreate.parse_raw(tour_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid Tour Data: {e}")
+
     result = await session.execute(
         select(Tour)
         .options(
@@ -325,23 +286,28 @@ async def edit_tour(
         raise HTTPException(status_code=404, detail="Tour not found or you don't have permission to edit it")
 
     addresses = await session.execute(
-        select(Address).where(Address.address_id.in_(tour_data.destination_ids))
+        select(Address).where(Address.address_id.in_(tour_data_obj.destination_ids))
     )
     address_list = addresses.scalars().all()
-    if len(address_list) != len(tour_data.destination_ids):
+    if len(address_list) != len(tour_data_obj.destination_ids):
         raise HTTPException(status_code=400, detail="One or more address IDs are invalid.")
 
     languages = await session.execute(
-        select(Language).where(Language.language_id.in_(tour_data.language_ids))
+        select(Language).where(Language.language_id.in_(tour_data_obj.language_ids))
     )
     language_list = languages.scalars().all()
-    if len(language_list) != len(tour_data.language_ids):
+    if len(language_list) != len(tour_data_obj.language_ids):
         raise HTTPException(status_code=400, detail="One or more language IDs are invalid.")
 
-    tour_dict = tour_data.dict(exclude={"destination_ids", "language_ids", "photo_gallery"})
+    tour_dict = tour_data_obj.dict()
 
     if isinstance(tour_dict.get("date"), datetime):
         tour_dict["date"] = tour_dict["date"].date()
+
+    tour_dict.pop("destination_ids", None)
+    tour_dict.pop("language_ids", None)
+
+    tour_dict.pop("photo_gallery", None)
 
     for key, value in tour_dict.items():
         setattr(existing_tour, key, value)
