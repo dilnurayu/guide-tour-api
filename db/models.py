@@ -13,6 +13,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     address_id = Column(Integer, ForeignKey("addresses.address_id"), nullable=True)
     user_type = Column(String(50), nullable=False)
+    profile_photo = Column(String(512), nullable=True)
 
     address = relationship("Address", back_populates="users")
 

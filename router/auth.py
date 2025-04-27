@@ -1,19 +1,28 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, UploadFile, File
+from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from core.security import create_access_token, verify_password, get_password_hash
 from db.models import User
 from db.schemas import UserCreate, Token, SignIn
 from db.get_db import get_async_session
+from router.tour import save_upload_file
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/signup", response_model=Token)
 async def signup(
-    user: UserCreate,
+    name: str = Form(...),
+    email: EmailStr = Form(...),
+    password: str = Form(...),
+    address_id: Optional[int] = Form(None),
+    user_type: str = Form(...),
+    profile_photo: Optional[UploadFile] = File(None),
     session: AsyncSession = Depends(get_async_session)
 ):
-    result = await session.execute(select(User).where(User.email == user.email))
+    result = await session.execute(select(User).where(User.email == email))
     user_in_db = result.scalar_one_or_none()
     if user_in_db:
         raise HTTPException(
@@ -21,13 +30,18 @@ async def signup(
             detail="Email already registered.",
         )
 
-    hashed_password = get_password_hash(user.password)
+    profile_photo_url = None
+    if profile_photo:
+        profile_photo_url = await save_upload_file(profile_photo)
+
+    hashed_password = get_password_hash(password)
     new_user = User(
-        name=user.name,
-        email=user.email,
+        name=name,
+        email=email,
         hashed_password=hashed_password,
-        address_id=user.address_id,
-        user_type=user.user_type,
+        address_id=address_id,
+        user_type=user_type,
+        profile_photo=profile_photo_url,
     )
     session.add(new_user)
     await session.commit()

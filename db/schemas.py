@@ -1,5 +1,6 @@
 from datetime import datetime, time, date
 
+from fastapi import UploadFile
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
@@ -10,6 +11,7 @@ class UserCreate(BaseModel):
     password: str
     address_id: Optional[int]
     user_type: str
+    profile_photo: Optional[UploadFile] = None
 
 class SignIn(BaseModel):
     email: str
@@ -110,6 +112,7 @@ class ResumeCreate(ResumeBase):
     price: int
     price_type: str
 
+
 class ResumeOut(ResumeBase):
     resume_id: int
     guide_id: int
@@ -119,13 +122,14 @@ class ResumeOut(ResumeBase):
     price: int
     price_type: str
     guide_name: Optional[str] = None
+    guide_photo: Optional[str] = None
 
     class Config:
         orm_mode = True
         from_attributes = True
 
     @classmethod
-    def from_orm(cls, resume, guide_name: Optional[str] = None):
+    def from_orm(cls, resume, guide_name: Optional[str] = None, guide_photo: Optional[str] = None):
         resume_dict = {
             "resume_id": resume.resume_id,
             "guide_id": resume.guide_id,
@@ -137,6 +141,7 @@ class ResumeOut(ResumeBase):
             "price_type": resume.price_type,
             "rating": getattr(resume, 'rating', 0.0),
             "guide_name": guide_name,
+            "guide_photo": guide_photo,
         }
         return cls(**resume_dict)
 
@@ -149,6 +154,7 @@ class ResumeDetailsOut(ResumeBase):
     price: int
     price_type: str
     guide_name: Optional[str] = None
+    guide_photo: Optional[str] = None
     tour_photos: Optional[List[str]]
 
     class Config:
@@ -156,7 +162,7 @@ class ResumeDetailsOut(ResumeBase):
         from_attributes = True
 
     @classmethod
-    def from_orm(cls, resume, guide_name: Optional[str] = None, tour_photos: Optional[List[str]] = None):
+    def from_orm(cls, resume, guide_name: Optional[str] = None, guide_photo: Optional[str] = None, tour_photos: Optional[List[str]] = None):
         return cls(
             resume_id=resume.resume_id,
             guide_id=resume.guide_id,
@@ -168,6 +174,7 @@ class ResumeDetailsOut(ResumeBase):
             price_type=resume.price_type,
             rating=getattr(resume, 'rating', 0.0),
             guide_name=guide_name,
+            guide_photo=guide_photo,
             tour_photos=tour_photos or []
         )
 
@@ -332,3 +339,4 @@ class ProfileOut(BaseModel):
     user_name: str
     email: str
     address: AddressOut
+    profile_photo: Optional[str]

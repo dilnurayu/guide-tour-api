@@ -101,7 +101,7 @@ async def get_resume(
     session: AsyncSession = Depends(get_async_session),
 ):
     result = await session.execute(
-        select(Resume, User.name.label("user_name"))
+        select(Resume, User.name.label("user_name"), User.profile_photo.label("profile_photo"))
         .options(joinedload(Resume.languages), joinedload(Resume.addresses))
         .join(User, Resume.guide_id == User.user_id)
         .where(Resume.resume_id == resume_id)
@@ -111,7 +111,7 @@ async def get_resume(
     if not resume_row:
         raise HTTPException(status_code=404, detail="Resume not found.")
 
-    resume, user_name = resume_row
+    resume, user_name, profile_photo = resume_row
     resume.rating = await get_average_rating(resume.guide_id, session)
 
     tour_photos_result = await session.execute(
@@ -124,15 +124,13 @@ async def get_resume(
 
     tour_photos = tour_photos[:3]
 
-    return ResumeDetailsOut.from_orm(resume, guide_name=user_name, tour_photos=tour_photos)
+    return ResumeDetailsOut.from_orm(resume, guide_name=user_name, guide_photo=profile_photo, tour_photos=tour_photos)
 
 
 
 @router.get("/", response_model=List[ResumeOut])
 async def list_resumes(
         session: AsyncSession = Depends(get_async_session),
-        skip: int = 0,
-        limit: int = 10,
         user_id: Optional[int] = None,
         min_rating: Optional[float] = None,
         max_rating: Optional[float] = None,
@@ -144,7 +142,7 @@ async def list_resumes(
         experience_start_date: Optional[date] = None,
 ):
     query = (
-        select(Resume, User.name.label("user_name"))
+        select(Resume, User.name.label("user_name"), User.profile_photo.label("profile_photo"))
         .options(joinedload(Resume.languages), joinedload(Resume.addresses))
         .join(User, Resume.guide_id == User.user_id)
     )
@@ -168,19 +166,18 @@ async def list_resumes(
     if filters:
         query = query.where(and_(*filters))
 
-    query = query.offset(skip).limit(limit)
     result = await session.execute(query)
     resumes = result.unique().all()
 
     response_resumes = []
-    for resume, user_name in resumes:
+    for resume, user_name, profile_photo in resumes:
         rating = await get_average_rating(resume.guide_id, session)
         if min_rating is not None and rating < min_rating:
             continue
         if max_rating is not None and rating > max_rating:
             continue
         resume.rating = rating
-        response_resumes.append(ResumeOut.from_orm(resume, guide_name=user_name))
+        response_resumes.append(ResumeOut.from_orm(resume, guide_name=user_name, guide_photo=profile_photo))
     return response_resumes
 
 
