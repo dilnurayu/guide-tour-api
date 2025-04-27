@@ -171,8 +171,6 @@ async def get_tour(
 @router.get("/", response_model=List[TourOut])
 async def list_tours(
         session: AsyncSession = Depends(get_async_session),
-        skip: int = 0,
-        limit: int = 10,
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
         date_from: Optional[date] = None,
@@ -220,7 +218,6 @@ async def list_tours(
     if filters:
         query = query.where(and_(*filters))
 
-    query = query.offset(skip).limit(limit)
     result = await session.execute(query)
     tours = result.scalars().all()
 
