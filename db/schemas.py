@@ -297,18 +297,24 @@ class BookGuideOut(BookGuideCreate):
     book_id: int
     confirmed: bool
     guide_name: Optional[str] = None
-    tourist_name: Optional[str] = None  # Added tourist_name
+    tourist_name: Optional[str] = None
+    guide_photo: Optional[str] = None    # Added guide_photo
+    tourist_photo: Optional[str] = None  # Added tourist_photo
 
     class Config:
         orm_mode = True
 
     @classmethod
-    def from_orm(cls, booking, guide_name: Optional[str] = None, tourist_name: Optional[str] = None):
+    def from_orm(cls, booking, guide_name: Optional[str] = None, tourist_name: Optional[str] = None,
+                guide_photo: Optional[str] = None, tourist_photo: Optional[str] = None):
         data = booking.__dict__.copy()
         data.pop("_sa_instance_state", None)
         data["guide_name"] = guide_name or ""
-        data["tourist_name"] = tourist_name or ""  # Handle tourist_name
+        data["tourist_name"] = tourist_name or ""
+        data["guide_photo"] = guide_photo or None
+        data["tourist_photo"] = tourist_photo or None
         return cls(**data)
+
 
 class BookTourCreate(BaseModel):
     tour_id: int
@@ -321,16 +327,21 @@ class BookTourOut(BookTourCreate):
     confirmed: bool
     tour_title: Optional[str] = None
     tourist_name: Optional[str] = None
+    guide_photo: Optional[str] = None    # Added guide_photo
+    tourist_photo: Optional[str] = None  # Added tourist_photo
 
     class Config:
         orm_mode = True
 
     @classmethod
-    def from_orm(cls, booking, tour_title: Optional[str] = None, tourist_name: Optional[str] = None):
+    def from_orm(cls, booking, tour_title: Optional[str] = None, tourist_name: Optional[str] = None,
+                guide_photo: Optional[str] = None, tourist_photo: Optional[str] = None):
         data = booking.__dict__.copy()
         data.pop("_sa_instance_state", None)
         data["tour_title"] = tour_title or ""
-        data["tourist_name"] = tourist_name or ""  # Handle tourist_name
+        data["tourist_name"] = tourist_name or ""
+        data["guide_photo"] = guide_photo or None
+        data["tourist_photo"] = tourist_photo or None
         return cls(**data)
 
 
